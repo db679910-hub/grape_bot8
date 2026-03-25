@@ -13,8 +13,13 @@ COOLDOWN_SECONDS = 60
 
 logging.basicConfig(level=logging.INFO)
 
+# Глобальное подключение
+conn = None
+cursor = None
+
 def init_db():
-    conn = sqlite3.connect('grapes.db')
+    global conn, cursor
+    conn = sqlite3.connect('grapes.db', check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -24,37 +29,24 @@ def init_db():
         )
     ''')
     conn.commit()
-    conn.close()
     logging.info("✅ База данных SQLite готова!")
 
 def get_user(user_id):
-    conn = sqlite3.connect('grapes.db')
-    cursor = conn.cursor()
     cursor.execute('SELECT balance, last_collect FROM users WHERE user_id = ?', (user_id,))
     result = cursor.fetchone()
-    conn.close()
     return result if result else (0, 0)
 
 def add_user(user_id):
-    conn = sqlite3.connect('grapes.db')
-    cursor = conn.cursor()
     cursor.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
     conn.commit()
-    conn.close()
 
 def update_balance(user_id, amount):
-    conn = sqlite3.connect('grapes.db')
-    cursor = conn.cursor()
     cursor.execute('UPDATE users SET balance = balance + ? WHERE user_id = ?', (amount, user_id))
     conn.commit()
-    conn.close()
 
 def update_time(user_id, timestamp):
-    conn = sqlite3.connect('grapes.db')
-    cursor = conn.cursor()
     cursor.execute('UPDATE users SET last_collect = ? WHERE user_id = ?', (timestamp, user_id))
     conn.commit()
-    conn.close()
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -82,20 +74,16 @@ async def cmd_collect(message: Message):
     
     update_balance(user_id, GRAPE_REWARD)
     update_time(user_id, now)
+    
+    # Получаем НОВЫЙ баланс после обновления
+    new_balance, _ = get_user(user_id)
+    
     await message.answer(
         f"🍇 +{GRAPE_REWARD} винограда!\n"
-        f"Всего: {balance + GRAPE_REWARD}"
+        f"Всего: {new_balance}"
     )
 
 @dp.message(Command("баланс", "balance"))
 async def cmd_balance(message: Message):
     balance, _ = get_user(message.from_user.id)
-    await message.answer(f"🍇 **Ваш баланс**: {balance} 🍇")
-
-async def main():
-    init_db()
-    logging.info("✅ Бот запущен!")
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    await message
