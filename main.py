@@ -1,4 +1,4 @@
-    async with pool.acquire() as conn:
+        async with pool.acquire() as conn:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 user_id BIGINT PRIMARY KEY,
