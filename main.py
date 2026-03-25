@@ -9,6 +9,13 @@ from aiogram.types import Message
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# ПРОВЕРКА ПЕРЕМЕННЫХ
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN не найден! Добавьте переменную в Railway")
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL не найден! Добавьте переменную в Railway")
+
 GRAPE_REWARD = 5
 COOLDOWN_SECONDS = 60
 
@@ -17,10 +24,15 @@ pool = None
 
 async def init_db():
     global pool
-    pool = await asyncpg.create_pool(DATABASE_URL)
-    async with pool.acquire() as conn:
-        await conn.execute("CREATE TABLE IF NOT EXISTS users (user_id BIGINT PRIMARY KEY, balance INTEGER DEFAULT 0, last_collect INTEGER DEFAULT 0)")
-    logging.info("✅ PostgreSQL подключена!")
+    try:
+        pool = await asyncpg.create_pool(DATABASE_URL)
+        async with pool.acquire() as conn:
+            await conn.execute("CREATE TABLE IF NOT EXISTS users (user_id BIGINT PRIMARY KEY, balance INTEGER DEFAULT 0, last_collect INTEGER DEFAULT 0)")
+        logging.info("✅ PostgreSQL подключена!")
+    except Exception as e:
+        logging.error(f"❌ Ошибка подключения к БД: {e}")
+        logging.error(f"DATABASE_URL: {DATABASE_URL[:20]}...")
+        raise
 
 async def get_user(user_id):
     async with pool.acquire() as conn:
@@ -45,7 +57,7 @@ dp = Dispatcher()
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     await add_user(message.from_user.id)
-    await message.answer(f"🍇 Привет, {message.from_user.first_name}!\n\nСобирай виноград:\n/сбор — собрать (+{GRAPE_REWARD}🍇)\n/баланс — проверить")
+    await message.answer(f"🍇 Привет!\n\n/сбор — собрать\n/баланс — проверить")
 
 @dp.message(Command("сбор", "collect"))
 async def cmd_collect(message: Message):
