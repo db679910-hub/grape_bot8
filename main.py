@@ -1,24 +1,3 @@
-import asyncio
-import logging
-import time
-import os
-import asyncpg
-from aiogram import Bot, Dispatcher
-from aiogram.filters import Command
-from aiogram.types import Message
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-DATABASE_URL = os.getenv("DATABASE_URL")
-GRAPE_REWARD = 5
-COOLDOWN_SECONDS = 60
-
-logging.basicConfig(level=logging.INFO)
-
-pool = None
-
-async def init_db():
-    global pool
-    pool = await asyncpg.create_pool(DATABASE_URL)
     async with pool.acquire() as conn:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS users (
