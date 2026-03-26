@@ -1,4 +1,4 @@
-import asyncio  
+import asyncio
 import logging
 import time
 import os
@@ -83,17 +83,14 @@ BOOSTERS = {
     "speed_4h": {"name": "⚡ Ускорение 4ч", "price": 150, "duration": 14400, "effect": "growth_speed", "bonus": 1.5},
     "speed_12h": {"name": "⚡ Ускорение 12ч", "price": 350, "duration": 43200, "effect": "growth_speed", "bonus": 1.5},
     "speed_24h": {"name": "⚡ Ускорение 24ч", "price": 600, "duration": 86400, "effect": "growth_speed", "bonus": 1.5},
-    
     "yield_1h": {"name": "📈 Урожай 1ч", "price": 75, "duration": 3600, "effect": "yield", "bonus": 1.3},
     "yield_4h": {"name": "📈 Урожай 4ч", "price": 200, "duration": 14400, "effect": "yield", "bonus": 1.3},
     "yield_12h": {"name": "📈 Урожай 12ч", "price": 500, "duration": 43200, "effect": "yield", "bonus": 1.3},
     "yield_24h": {"name": "📈 Урожай 24ч", "price": 800, "duration": 86400, "effect": "yield", "bonus": 1.3},
-    
     "income_1h": {"name": "💰 Доход 1ч", "price": 120, "duration": 3600, "effect": "passive_income", "bonus": 2.0},
     "income_4h": {"name": "💰 Доход 4ч", "price": 350, "duration": 14400, "effect": "passive_income", "bonus": 2.0},
     "income_12h": {"name": "💰 Доход 12ч", "price": 800, "duration": 43200, "effect": "passive_income", "bonus": 2.0},
     "income_24h": {"name": "💰 Доход 24ч", "price": 1200, "duration": 86400, "effect": "passive_income", "bonus": 2.0},
-    
     "super_booster_1h": {"name": "🌟 СУПЕР 1ч", "price": 500, "duration": 3600, "effect": "all", "bonus": 1.5},
     "super_booster_4h": {"name": "🌟 СУПЕР 4ч", "price": 1500, "duration": 14400, "effect": "all", "bonus": 1.5},
     "super_booster_24h": {"name": "🌟 СУПЕР 24ч", "price": 5000, "duration": 86400, "effect": "all", "bonus": 1.5},
@@ -264,8 +261,8 @@ async def buy_item(user_id, item_id):
             await conn.execute("UPDATE users SET double_grapes = TRUE WHERE user_id = $1", user_id)
         elif item_id == "bonus_2h":
             await conn.execute("UPDATE users SET bonus_2h = TRUE WHERE user_id = $1", user_id)
-        elif item_id in ["skin_wine", "skin_diamond"]:
-            skin = "wine" if item_id == "skin_wine" else "diamond"
+        elif item_id in ["skin_wine", "skin_diamond", "skin_gold"]:
+            skin = "wine" if item_id == "skin_wine" else "diamond" if item_id == "skin_diamond" else "gold"
             await conn.execute("UPDATE users SET skin = $1 WHERE user_id = $2", skin, user_id)
 
 async def get_active_boosters(user_id):
@@ -406,7 +403,7 @@ async def upgrade_farm_level(user_id):
         
         current_level = user.get('farm_level', 1)
         
-        if current_level >= 5:
+        if current_level >= 9:
             return False, "Максимальный уровень фермы!"
         
         next_level = current_level + 1
@@ -517,7 +514,7 @@ async def send_gift(from_user_id, to_user_id, amount):
         return commission, received
 
 async def get_skin_emoji(skin):
-    return {"grape": "🍇", "wine": "🍷", "diamond": "💎"}.get(skin, "🍇")
+    return {"grape": "🍇", "wine": "🍷", "diamond": "💎", "gold": "🏆"}.get(skin, "🍇")
 
 async def get_top_users(limit=10):
     async with pool.acquire() as conn:
@@ -546,60 +543,18 @@ async def cmd_start(message: Message):
         
         user = await add_user(user_id, ref_code, username)
         
-        keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="🌾 Ферма", callback_data="menu_farm")
-        keyboard.button(text="🏠 Дом", callback_data="menu_house")
-        keyboard.button(text="🎁 Подарки", callback_data="menu_gifts")
-        keyboard.button(text="🚀 Бустеры", callback_data="menu_boosters")
-        keyboard.button(text="💰 Баланс", callback_data="menu_balance")
-        keyboard.button(text="🏪 Магазин", callback_data="menu_shop")
-        keyboard.button(text="📊 Топ", callback_data="menu_top")
-        keyboard.button(text="❓ Помощь", callback_data="menu_help")
-        keyboard.adjust(2)
-        
         if user:
-            text = f"""
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
-    try:
-        user_id = message.from_user.id
-        username = message.from_user.username
-        args = message.text.split()
-        ref_code = args[1] if len(args) > 1 else None
-        
-        user = await add_user(user_id, ref_code, username)
-        
-        keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="🌾 Ферма", callback_data="menu_farm")
-        keyboard.button(text="🏠 Дом", callback_data="menu_house")
-        keyboard.button(text="🎁 Подарки", callback_data="menu_gifts")
-        keyboard.button(text="🚀 Бустеры", callback_data="menu_boosters")
-        keyboard.button(text="💰 Баланс", callback_data="menu_balance")
-        keyboard.button(text="🏪 Магазин", callback_data="menu_shop")
-        keyboard.button(text="📊 Топ", callback_data="menu_top")
-        keyboard.button(text="❓ Помощь", callback_data="menu_help")
-        keyboard.adjust(2)
-        
-        if user:
-            text = f"""
-await message.answer(" ДОБРО ПОЖАЛОВАТЬ! ")
-Привет, {message.from_user.first_name}!
-
-" Это бот-ферма! Выращивай виноград, строй дома и становись богатым! "
-
- " Основные команды: "
-"/ферма — управлять фермой"
-"/дом — управлять домом"
-"/подарки — магазин подарков"
-"/бустеры — ускорения"
-"/баланс — проверить баланс"
-"/магазин — улучшения"
-"/топ — рейтинг игроков"
-"/помощь — справка"
-
-**Совет:** Начни с посадки винограда!
-"""
-            await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+            text = "🍇 ДОБРО ПОЖАЛОВАТЬ! 🍇\n\n"
+            text += f"Привет, {message.from_user.first_name}!\n\n"
+            text += "Это бот-ферма! Выращивай виноград, строй дома и становись богатым!\n\n"
+            text += "📋 Команды:\n"
+            text += "/ферма - управлять фермой\n"
+            text += "/дом - управлять домом\n"
+            text += "/подарки - магазин подарков\n"
+            text += "/бустеры - бустеры\n"
+            text += "/баланс - баланс\n"
+            text += "/помощь - справка"
+            await message.answer(text)
         else:
             await message.answer("❌ Ошибка регистрации")
     except Exception as e:
@@ -621,7 +576,6 @@ async def cmd_farm(message: Message):
         plots = user.get('farm_plots', ["empty", "empty", "empty"])
         balance = user.get('balance', 0)
         
-        # Визуализация грядок
         plot_emojis = {
             "empty": "🟫",
             "grape": "🍇",
@@ -660,16 +614,14 @@ async def cmd_farm(message: Message):
                 else:
                     farm_display.append("🟫")
         
-        # Формируем сетку 3x3
         farm_grid = ""
         for i in range(0, len(farm_display), 3):
             row = farm_display[i:i+3]
             farm_grid += " ".join(row) + "\n"
         
-        # Прогресс-бар опыта
         xp_needed = farm_level * 500
         xp_progress = farm_xp % xp_needed
-        xp_percent = int((xp_progress / xp_needed) * 10)
+        xp_percent = int((xp_progress / xp_needed) * 10) if xp_needed > 0 else 0
         xp_bar = "▰" * xp_percent + "▱" * (10 - xp_percent)
         
         keyboard = InlineKeyboardBuilder()
@@ -678,22 +630,15 @@ async def cmd_farm(message: Message):
         keyboard.button(text="📊 Статистика", callback_data="farm_stats")
         keyboard.adjust(2)
         
-        text = f"""
-🌾 **ВАША ФЕРМА** 🌾
-
-👤 Уровень: {farm_level}
-📊 Опыт: {xp_progress}/{xp_needed}
-{xp_bar}
-
-💰 Баланс: {balance} 🍇
-
-📍 **Грядки:**
-{farm_grid}
-
-🎯 **Совет:** Собирайте урожай вовремя!
-"""
+        text = "🌾 ВАША ФЕРМА 🌾\n\n"
+        text += f"👤 Уровень: {farm_level}\n"
+        text += f"📊 Опыт: {xp_progress}/{xp_needed}\n"
+        text += f"{xp_bar}\n\n"
+        text += f"💰 Баланс: {balance} 🍇\n\n"
+        text += "📍 Грядки:\n"
+        text += farm_grid
         
-        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+        await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
         logging.error(f"Ошибка cmd_farm: {e}")
         await message.answer("❌ Ошибка фермы.")
@@ -732,9 +677,6 @@ async def cmd_house(message: Message):
                 next_house = h
                 break
         
-        # Прогресс-бар дохода
-        income_bar = "▰" * min(hours_passed, 10) + "▱" * max(0, 10 - hours_passed)
-        
         keyboard = InlineKeyboardBuilder()
         keyboard.button(text="💰 Забрать доход", callback_data="house_claim")
         if next_house:
@@ -742,72 +684,70 @@ async def cmd_house(message: Message):
         keyboard.button(text="📊 Статистика", callback_data="house_stats")
         keyboard.adjust(2)
         
-        text = f"""
-🏠 **ВАШ ДОМ** 🏠
-
-{house['name']}
-{'─' * 20}
-
-📊 Уровень: {house_level}
-✨ Опыт: {house_xp}
-💰 Доход: {house['passive_income']} 🍇/час
-
-💵 Баланс: {balance} 🍇
-
-📈 **Пассивный доход:**
-{income_bar}
-🎁 Доступно: {pending_income} 🍇
-"""
+        text = f"🏠 ВАШ ДОМ 🏠\n\n"
+        text += f"{house['name']}\n"
+        text += "─" * 20 + "\n\n"
+        text += f"📊 Уровень: {house_level}\n"
+        text += f"✨ Опыт: {house_xp}\n"
+        text += f"💰 Доход: {house['passive_income']} 🍇/час\n\n"
+        text += f"💵 Баланс: {balance} 🍇\n\n"
+        text += "📈 Пассивный доход:\n"
+        income_bar = "▰" * min(hours_passed, 10) + "▱" * max(0, 10 - hours_passed)
+        text += f"{income_bar}\n"
+        text += f"🎁 Доступно: {pending_income} 🍇\n"
         
         if next_house:
-            text += f"\n🔜 **Следующий дом:**\n{next_house['name']}\n💰 Цена: {next_house['price']} 🍇\n📈 Доход: {next_house['passive_income']} 🍇/час"
+            text += f"\n🔜 Следующий дом:\n{next_house['name']}\n"
+            text += f"💰 Цена: {next_house['price']} 🍇\n"
+            text += f"📈 Доход: {next_house['passive_income']} 🍇/час"
         
-        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+        await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
         logging.error(f"Ошибка cmd_house: {e}")
         await message.answer("❌ Ошибка дома.")
-        
+
 @dp.message(Command("подарки"))
 async def cmd_gifts(message: Message):
     try:
         user = await get_user(message.from_user.id)
         balance = user.get('balance', 0) if user else 0
         
-        # Группировка по редкости
-        rarities = {
-            "common": {"emoji": "⚪", "name": "Обычные"},
-            "rare": {"emoji": "🔵", "name": "Редкие"},
-            "epic": {"emoji": "🟣", "name": "Эпические"},
-            "legendary": {"emoji": "🟡", "name": "Легендарные"}
-        }
-        
         keyboard = InlineKeyboardBuilder()
-        
-        for rarity, info in rarities.items():
-            items = [item for item_id, item in GIFT_CATALOG.items() if item.get('rarity') == rarity]
-            if items:
-                for item in items:
-                    keyboard.button(text=f"{info['emoji']} {item['name']} — {item['price']} 🍇", callback_data=f"gift_{list(GIFT_CATALOG.keys())[list(GIFT_CATALOG.values()).index(item)]}")
-        
+        for item_id, item in GIFT_CATALOG.items():
+            keyboard.button(text=f"{item['name']} - {item['price']} 🍇", callback_data=f"gift_{item_id}")
         keyboard.adjust(2)
         
-        text = f"""
-🎁 **МАГАЗИН ПОДАРКОВ** 🎁
-
-💰 Ваш баланс: {balance} 🍇
-
-📦 **Категории:**
-⚪ Обычные — 50-150 🍇
-🔵 Редкие — 300-750 🍇
-🟣 Эпические — 2000-10000 🍇
-🟡 Легендарные — 15000-50000 🍇
-
-Выберите подарок:
-"""
+        text = "🎁 МАГАЗИН ПОДАРКОВ 🎁\n\n"
+        text += f"💰 Ваш баланс: {balance} 🍇\n\n"
+        text += "Выберите подарок:"
         
-        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+        await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
         logging.error(f"Ошибка cmd_gifts: {e}")
+
+@dp.callback_query(lambda c: c.data.startswith("gift_"))
+async def callback_gift_buy(callback: CallbackQuery):
+    try:
+        user_id = callback.from_user.id
+        item_id = callback.data.replace("gift_", "")
+        
+        item = GIFT_CATALOG.get(item_id)
+        if not item:
+            await callback.answer("❌ Не найден", show_alert=True)
+            return
+        
+        user = await get_user(user_id)
+        if user['balance'] < item['price']:
+            await callback.answer("❌ Недостаточно", show_alert=True)
+            return
+        
+        await update_balance(user_id, -item['price'])
+        await add_to_inventory(user_id, item_id)
+        
+        await callback.message.answer(f"✅ {item['name']} куплен!\n/инвентарь - посмотреть")
+        await callback.answer()
+    except Exception as e:
+        logging.error(f"Ошибка callback_gift_buy: {e}")
 
 @dp.message(Command("инвентарь"))
 async def cmd_inventory(message: Message):
@@ -816,7 +756,7 @@ async def cmd_inventory(message: Message):
         inventory = user.get('inventory', []) if user else []
         
         if not inventory:
-            await message.answer("📦 Инвентарь пуст\n\n/подарки — купить подарки")
+            await message.answer("📦 Инвентарь пуст\n\n/подарки - купить подарки")
             return
         
         text = "📦 Ваш инвентарь\n\n"
@@ -844,55 +784,46 @@ async def cmd_boosters(message: Message):
         user = await get_user(message.from_user.id)
         balance = user.get('balance', 0) if user else 0
         
-        # Активные бустеры
-        active_boosters = await get_active_boosters(message.from_user.id)
-        
         keyboard = InlineKeyboardBuilder()
-        
-        categories = {
-            "⚡ Скорость": ["speed_1h", "speed_4h", "speed_12h", "speed_24h"],
-            "📈 Урожай": ["yield_1h", "yield_4h", "yield_12h", "yield_24h"],
-            "💰 Доход": ["income_1h", "income_4h", "income_12h", "income_24h"],
-            "🌟 Особые": ["super_booster_1h", "super_booster_4h", "super_booster_24h"]
-        }
-        
-        for category, items in categories.items():
-            for item_id in items:
-                booster = BOOSTERS.get(item_id)
-                if booster:
-                    keyboard.button(text=f"{category.split()[0]} {booster['name']} — {booster['price']} 🍇", callback_data=f"buy_booster_{item_id}")
-        
+        for booster_id, booster in BOOSTERS.items():
+            keyboard.button(text=f"{booster['name']} - {booster['price']} 🍇", callback_data=f"buy_booster_{booster_id}")
         keyboard.adjust(2)
         
-        text = f"""
-🚀 **МАГАЗИН БУСТЕРОВ** 🚀
-
-💰 Баланс: {balance} 🍇
-
-📦 **Категории:**
-⚡ Скорость — x1.5 к скорости роста
-📈 Урожай — +30% к урожаю
-💰 Доход — x2 к пассивному доходу
-🌟 Особые — x1.5 ко всему
-
-"""
+        text = "🚀 БУСТЕРЫ 🚀\n\n"
+        text += f"💰 Баланс: {balance} 🍇\n\n"
+        text += "⚡ Скорость - x1.5 к скорости роста\n"
+        text += "📈 Урожай - +30% к урожаю\n"
+        text += "💰 Доход - x2 к пассивному доходу\n"
+        text += "🌟 Особые - x1.5 ко всему\n\n"
+        text += "Выберите бустер:"
         
-        if active_boosters:
-            text += "**🎯 Активные бустеры:**\n"
-            now = int(time.time())
-            for b in active_boosters:
-                remaining = b['expires_at'] - now
-                hours = remaining // 3600
-                minutes = (remaining % 3600) // 60
-                text += f"{b['name']} — {hours}ч {minutes}м\n"
-        else:
-            text += "🎯 Активных бустеров нет"
-        
-        text += "\nВыберите бустер:"
-        
-        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+        await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
         logging.error(f"Ошибка cmd_boosters: {e}")
+
+@dp.callback_query(lambda c: c.data.startswith("buy_booster_"))
+async def callback_buy_booster(callback: CallbackQuery):
+    try:
+        booster_id = callback.data.replace("buy_booster_", "")
+        user_id = callback.from_user.id
+        
+        booster = BOOSTERS.get(booster_id)
+        if not booster:
+            await callback.answer("❌ Не найден", show_alert=True)
+            return
+        
+        user = await get_user(user_id)
+        if user['balance'] < booster['price']:
+            await callback.answer("❌ Недостаточно", show_alert=True)
+            return
+        
+        await update_balance(user_id, -booster['price'])
+        success, msg = await add_booster(user_id, booster_id)
+        
+        await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
+        await callback.answer()
+    except Exception as e:
+        logging.error(f"Ошибка callback_buy_booster: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("house_"))
 async def callback_house(callback: CallbackQuery):
@@ -916,7 +847,7 @@ async def callback_house(callback: CallbackQuery):
                 await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
         elif action == "stats":
             user = await get_user(user_id)
-            text = f"📊 Статистика\n\n"
+            text = "📊 Статистика\n\n"
             text += f"Дом: ур. {user.get('house_level', 1)}\n"
             text += f"Опыт: {user.get('house_xp', 0)}\n"
             text += f"Ферма: ур. {user.get('farm_level', 1)}\n"
@@ -936,7 +867,7 @@ async def callback_farm(callback: CallbackQuery):
         if action == "plant":
             keyboard = InlineKeyboardBuilder()
             for crop_id, crop in CROPS.items():
-                keyboard.button(text=f"{crop['name']} — {crop['cost']}", callback_data=f"plant_select_{crop_id}")
+                keyboard.button(text=f"{crop['name']} - {crop['cost']} 🍇", callback_data=f"plant_select_{crop_id}")
             keyboard.adjust(2)
             await callback.message.answer("🌱 Выберите культуру:", reply_markup=keyboard.as_markup())
         elif action == "upgrade":
@@ -944,7 +875,7 @@ async def callback_farm(callback: CallbackQuery):
             await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
         elif action == "stats":
             user = await get_user(user_id)
-            text = f"📊 Ферма\n\n"
+            text = "📊 Ферма\n\n"
             text += f"Уровень: {user.get('farm_level', 1)}\n"
             text += f"Опыт: {user.get('farm_xp', 0)}\n"
             text += f"Грядок: {len(user.get('farm_plots', []))}"
@@ -992,6 +923,7 @@ async def cmd_harvest(message: Message):
     except Exception as e:
         logging.error(f"Ошибка cmd_harvest: {e}")
         await message.answer("❌ Ошибка.")
+
 @dp.message(Command("баланс"))
 async def cmd_balance(message: Message):
     try:
@@ -1006,27 +938,23 @@ async def cmd_balance(message: Message):
         total_harvest = user.get('total_harvest', 0)
         total_earned = user.get('total_earned', 0)
         
-        text = f"""
-💰 **ВАШ БАЛАНС** 💰
-{'═' * 25}
-
-🍇 **Виноград:** {balance:,}
-
-📊 **Статистика:**
-🌾 Ферма: уровень {farm_level}
-🏠 Дом: уровень {house_level}
-🚜 Всего урожаев: {total_harvest}
-💵 Всего заработано: {total_earned:,} 🍇
-
-🎯 **Прогресс:**
-Ферма: {farm_level}/9 🌾
-Дом: {house_level}/9 🏠
-"""
+        text = "💰 ВАШ БАЛАНС 💰\n"
+        text += "═" * 25 + "\n\n"
+        text += f"🍇 Виноград: {balance:,}\n\n"
+        text += "📊 Статистика:\n"
+        text += f"🌾 Ферма: уровень {farm_level}\n"
+        text += f"🏠 Дом: уровень {house_level}\n"
+        text += f"🚜 Всего урожаев: {total_harvest}\n"
+        text += f"💵 Всего заработано: {total_earned:,} 🍇\n\n"
+        text += "🎯 Прогресс:\n"
+        text += f"Ферма: {farm_level}/9 🌾\n"
+        text += f"Дом: {house_level}/9 🏠"
         
-        await message.answer(text, parse_mode="Markdown")
+        await message.answer(text)
     except Exception as e:
         logging.error(f"Ошибка cmd_balance: {e}")
         await message.answer("❌ Ошибка.")
+
 @dp.message(Command("магазин"))
 async def cmd_shop(message: Message):
     try:
@@ -1035,10 +963,25 @@ async def cmd_shop(message: Message):
         
         keyboard = InlineKeyboardBuilder()
         for item_id, item in SHOP_ITEMS.items():
-            keyboard.button(text=f"{item['name']} — {item['price']}", callback_data=f"buy_{item_id}")
+            keyboard.button(text=f"{item['name']} - {item['price']} 🍇", callback_data=f"buy_{item_id}")
         keyboard.adjust(2)
         
-        await message.answer(f"🏪 Магазин\n\nБаланс: {balance}\n\n🔧 Улучшения:\n🔄 Авто-сбор — 500\n📈 x2 — 1000\n⏰ Бонус 2ч — 300\n\n🎨 Скины:\n🍷 Вино — 200\n💎 Алмаз — 500\n\n💚 Сброс — 100", reply_markup=keyboard.as_markup())
+        text = "🏪 МАГАЗИН 🏪\n\n"
+        text += f"Баланс: {balance} 🍇\n\n"
+        text += "🔧 Улучшения:\n"
+        text += "🔄 Авто-сбор - 1000 🍇\n"
+        text += "📈 x2 - 2500 🍇\n"
+        text += "📈 x3 - 7500 🍇\n"
+        text += "⏰ Бонус 2ч - 500 🍇\n"
+        text += "⏰ Бонус 1ч - 800 🍇\n\n"
+        text += "🎨 Скины:\n"
+        text += "🍷 Вино - 500 🍇\n"
+        text += "💎 Алмаз - 1500 🍇\n"
+        text += "🏆 Золото - 3000 🍇\n\n"
+        text += "💚 Сброс - 200 🍇\n"
+        text += "🍀 Талисман - 750 🍇"
+        
+        await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
         logging.error(f"Ошибка cmd_shop: {e}")
 
@@ -1078,7 +1021,23 @@ async def callback_buy(callback: CallbackQuery):
 
 @dp.message(Command("помощь"))
 async def cmd_help(message: Message):
-    await message.answer("📚 Справка\n\n🌾 /ферма — ферма\n🏠 /дом — дом\n🎁 /подарки — подарки\n🚀 /бустеры — бустеры\n🌱 /посадить [грядка] [культура]\n🚜 /собрать [грядка]\n💰 /баланс — баланс\n🏪 /магазин — магазин\n❓ /помощь — справка")
+    text = "📚 СПРАВКА 📚\n\n"
+    text += "🌾 Ферма:\n"
+    text += "/ферма - ферма\n"
+    text += "/посадить [грядка] [культура]\n"
+    text += "/собрать [грядка]\n\n"
+    text += "🏠 Дом:\n"
+    text += "/дом - дом\n"
+    text += "/бустеры - бустеры\n\n"
+    text += "🍇 Сбор:\n"
+    text += "/баланс - проверить\n\n"
+    text += "🏪 Магазин:\n"
+    text += "/магазин - улучшения\n"
+    text += "/подарки - подарки\n\n"
+    text += "👥 Другое:\n"
+    text += "/топ - рейтинг\n"
+    text += "/помощь - справка"
+    await message.answer(text)
 
 @dp.message(Command("топ"))
 async def cmd_top(message: Message):
@@ -1088,7 +1047,7 @@ async def cmd_top(message: Message):
             await message.answer("📊 Пока нет игроков")
             return
         
-        text = "🏆 Топ игроков\n\n"
+        text = "🏆 ТОП ИГРОКОВ 🏆\n\n"
         for i, row in enumerate(top, 1):
             medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
             try:
@@ -1096,7 +1055,7 @@ async def cmd_top(message: Message):
                 name = u.first_name[:20]
             except:
                 name = f"User{row['user_id']}"
-            text += f"{medal} {name} — {row['balance']}\n"
+            text += f"{medal} {name} - {row['balance']} 🍇\n"
         await message.answer(text)
     except Exception as e:
         logging.error(f"Ошибка cmd_top: {e}")
@@ -1106,7 +1065,10 @@ async def cmd_stats(message: Message):
     try:
         total = await get_total_users()
         grapes = await get_total_grapes()
-        await message.answer(f"📊 Статистика\n\n👥 Игроков: {total}\n🍇 Всего: {grapes or 0}")
+        text = "📊 СТАТИСТИКА 📊\n\n"
+        text += f"👥 Игроков: {total}\n"
+        text += f"🍇 Всего: {grapes or 0}"
+        await message.answer(text)
     except Exception as e:
         logging.error(f"Ошибка cmd_stats: {e}")
 
