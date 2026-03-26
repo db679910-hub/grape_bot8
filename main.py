@@ -582,8 +582,7 @@ async def cmd_start(message: Message):
         
         if user:
             text = f"""
-🍇 **ДОБРО ПОЖАЛОВАТЬ!** 🍇
-
+await message.answer("🍇 **ДОБРО ПОЖАЛОВАТЬ!** 🍇")
 Привет, {message.from_user.first_name}!
 
 🎮 Это бот-ферма! Выращивай виноград, строй дома и становись богатым!
