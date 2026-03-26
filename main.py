@@ -992,6 +992,87 @@ async def cmd_farm(message: Message):
     except Exception as e:
         logging.error(f"Ошибка cmd_farm: {e}")
         await message.answer("❌ Ошибка фермы.")
+        
+        @dp.message(Command("сбор"))
+async def cmd_collect(message: Message):
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.username
+        await add_user(user_id, username=username)
+        
+        now = int(time.time())
+        user = await get_user(user_id)
+        
+        if not user:
+            await message.answer("❌ Ошибка пользователя")
+            return
+        
+        auto = user.get('auto_collect', False)
+        double = user.get('double_grapes', False)
+        skin = user.get('skin', 'grape')
+        emoji = await get_skin_emoji(skin)
+        last_time = user.get('last_collect', 0)
+        cooldown = 0 if auto else COOLDOWN_SECONDS
+        
+        # Проверяем кулдаун
+        if now - last_time < cooldown:
+            remaining = cooldown - (now - last_time)
+            hours = remaining // 3600
+            minutes = (remaining % 3600) // 60
+            seconds = remaining % 60
+            
+            if hours > 0:
+                wait_text = f"{hours}ч {minutes}м"
+            elif minutes > 0:
+                wait_text = f"{minutes}м {seconds}с"
+            else:
+                wait_text = f"{seconds}с"
+            
+            text = (
+                f"⏳ Виноград ещё растёт\n\n"
+                f"🍇 Подождите: {wait_text}\n"
+                f"📍 Следующий сбор: через {wait_text}\n\n"
+                f"💡 Совет: купите авто-сбор в магазине!"
+            )
+            await message.answer(text)
+            return
+        
+        # Собираем урожай
+        reward = GRAPE_REWARD * (2 if double else 1)
+        await update_balance(user_id, reward)
+        await update_collect_time(user_id, now)
+        
+        new_user = await get_user(user_id)
+        new_balance = new_user.get('balance', 0) if new_user else reward
+        
+        # Пассивный доход для пригласившего
+        if user.get('invited_by'):
+            passive = int(reward * REFERRAL_PERCENT / 100)
+            if passive > 0:
+                await add_passive_income(user['invited_by'], passive)
+        
+        # Формируем красивое сообщение
+        text = (
+            f"{emoji} **Сбор винограда!** {emoji}\n\n"
+            f"🍇 Собрано: {reward:,}\n"
+            f"💰 Ваш баланс: {new_balance:,} 🍇\n\n"
+        )
+        
+        if double:
+            text += "📈 Бонус: x2 активен!\n"
+        
+        if auto:
+            text += "🔄 Авто-сбор: активен!\n"
+        
+        text += f"\n⏱ Следующий сбор: через {COOLDOWN_HOURS} ч"
+        
+        await message.answer(text)
+        
+        logging.info(f"Пользователь {user_id} собрал {reward} винограда")
+        
+    except Exception as e:
+        logging.error(f"Ошибка cmd_collect: {e}")
+        await message.answer("❌ Ошибка сбора. Попробуйте позже.")
 
 @dp.message(Command("дом"))
 async def cmd_house(message: Message):
@@ -1457,25 +1538,34 @@ async def callback_buy(callback: CallbackQuery):
 
 @dp.message(Command("помощь"))
 async def cmd_help(message: Message):
-    text = "📚 **СПРАВКА** 📚\n\n"
-    text += "🌾 **Ферма**:\n"
-    text += "/ферма - ферма\n"
-    text += "/посадить [грядка] [культура]\n"
-    text += "/собрать [грядка]\n\n"
-    text += "🏠 **Дом**:\n"
-    text += "/дом - дом\n"
-    text += "/бустеры - бустеры\n\n"
-    text += "🎁 **Подарки**:\n"
-    text += "/подарки - магазин подарков\n"
-    text += "/инвентарь - мои подарки\n"
-    text += "/передать @user предмет\n\n"
-    text += "🍇 **Сбор**:\n"
-    text += "/баланс - проверить\n\n"
-    text += "🏪 **Магазин**:\n"
-    text += "/магазин - улучшения\n\n"
-    text += "👥 **Другое**:\n"
-    text += "/топ - рейтинг\n"
-    text += "/помощь - справка"
+    text = (
+        f"📚 Справка\n\n"
+        
+        f"🌾 ФЕРМА:\n"
+        f"/ферма - ваша ферма\n"
+        f"/посадить [грядка] [культура]\n"
+        f"/собрать [грядка]\n"
+        f"/сбор - собрать виноград\n\n"
+        
+        f"🏠 ДОМ:\n"
+        f"/дом - ваш дом\n"
+        f"/бустеры - магазин бустеров\n\n"
+        
+        f"🎁 ПОДАРКИ:\n"
+        f"/подарки - магазин подарков\n"
+        f"/инвентарь - мои подарки\n"
+        f"/инвентарь @user - чужой инвентарь\n"
+        f"/передать @user предмет\n\n"
+        
+        f"💰 БАЛАНС:\n"
+        f"/баланс - проверить баланс\n"
+        f"/магазин - улучшения\n\n"
+        
+        f"👥 ДРУГОЕ:\n"
+        f"/топ - рейтинг игроков\n"
+        f"/статистика - статистика бота\n"
+        f"/помощь - эта справка"
+    )
     await message.answer(text)
 
 @dp.message(Command("топ"))
