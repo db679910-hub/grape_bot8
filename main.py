@@ -85,8 +85,8 @@ logging.basicConfig(level=logging.INFO)
 pool = None
 
 SHOP_ITEMS = {
-    "auto_collect": {"name": "🔄 Авто-сбор", "price": 500, "desc": "Сбор без кулдауна", "type": "upgrade"},
-    "double_grapes": {"name": "📈 Умножение x2", "price": 1000, "desc": "Сбор x2", "type": "upgrade"},
+    "auto_collect": {"name": "🔄 Авто-сбор", "price": 500, "desc": "Без кулдауна", "type": "upgrade"},
+    "double_grapes": {"name": "📈 Умножение x2", "price": 1000, "desc": "x2 винограда", "type": "upgrade"},
     "bonus_2h": {"name": "⏰ Бонус 2ч", "price": 300, "desc": "Бонус каждые 2 часа", "type": "upgrade"},
     "skin_wine": {"name": "🍷 Скин Вино", "price": 200, "desc": "Меняет эмодзи", "type": "skin"},
     "skin_diamond": {"name": "💎 Скин Алмаз", "price": 500, "desc": "Меняет эмодзи", "type": "skin"},
@@ -100,7 +100,7 @@ async def init_db():
     global pool
     try:
         pool = await asyncpg.create_pool(DATABASE_URL)
-        logging.info("Подключение к базе данных успешно!")
+        logging.info("База данных подключена!")
         
         async with pool.acquire() as conn:
             await conn.execute("""
@@ -137,7 +137,7 @@ async def init_db():
         
         logging.info("База данных готова!")
     except Exception as e:
-        logging.error(f"Ошибка инициализации БД: {e}")
+        logging.error(f"Ошибка БД: {e}")
         raise
 
 async def get_user(user_id):
@@ -513,11 +513,11 @@ async def cmd_start(message: Message):
         user = await add_user(user_id, ref_code, username)
         
         if user:
-            await message.answer(f"🍇 Привет, {message.from_user.first_name}!\n\n📋 Команды:\n/ферма — моя ферма\n/дом — мой дом\n/подарки — магазин подарков\n/бустеры — бустеры\n/баланс — проверить\n/помощь — справка")
+            await message.answer(f"🍇 Привет, {message.from_user.first_name}!\n\n📋 Команды:\n/ферма — ферма\n/дом — дом\n/подарки — подарки\n/инвентарь — инвентарь\n/бустеры — бустеры\n/баланс — баланс\n/помощь — справка")
         else:
             await message.answer("❌ Ошибка регистрации")
     except Exception as e:
-        logging.error(f"Ошибка в /start: {e}")
+        logging.error(f"Ошибка cmd_start: {e}")
         await message.answer("❌ Произошла ошибка.")
 
 @dp.message(Command("ферма"))
@@ -576,7 +576,7 @@ async def cmd_farm(message: Message):
         
         await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"Ошибка в /ферма: {e}")
+        logging.error(f"Ошибка cmd_farm: {e}")
         await message.answer("❌ Ошибка фермы.")
 
 @dp.message(Command("дом"))
@@ -635,7 +635,7 @@ async def cmd_house(message: Message):
         
         await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"Ошибка в /дом: {e}")
+        logging.error(f"Ошибка cmd_house: {e}")
         await message.answer("❌ Ошибка дома.")
 
 @dp.message(Command("подарки"))
@@ -651,7 +651,7 @@ async def cmd_gifts(message: Message):
         
         await message.answer(f"🎁 Магазин подарков\n\nБаланс: {balance}\n\nВыберите подарок:", reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"Ошибка в /подарки: {e}")
+        logging.error(f"Ошибка cmd_gifts: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("gift_"))
 async def callback_gift_buy(callback: CallbackQuery):
@@ -675,7 +675,7 @@ async def callback_gift_buy(callback: CallbackQuery):
         await callback.message.answer(f"✅ {item['name']} куплен!\n/инвентарь — посмотреть")
         await callback.answer()
     except Exception as e:
-        logging.error(f"Ошибка в callback_gift_buy: {e}")
+        logging.error(f"Ошибка callback_gift_buy: {e}")
 
 @dp.message(Command("инвентарь"))
 async def cmd_inventory(message: Message):
@@ -704,7 +704,7 @@ async def cmd_inventory(message: Message):
         
         await message.answer(text)
     except Exception as e:
-        logging.error(f"Ошибка в /инвентарь: {e}")
+        logging.error(f"Ошибка cmd_inventory: {e}")
 
 @dp.message(Command("бустеры"))
 async def cmd_boosters(message: Message):
@@ -719,7 +719,7 @@ async def cmd_boosters(message: Message):
         
         await message.answer(f"🚀 Бустеры\n\nБаланс: {balance}", reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"Ошибка в /бустеры: {e}")
+        logging.error(f"Ошибка cmd_boosters: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("buy_booster_"))
 async def callback_buy_booster(callback: CallbackQuery):
@@ -743,7 +743,7 @@ async def callback_buy_booster(callback: CallbackQuery):
         await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
         await callback.answer()
     except Exception as e:
-        logging.error(f"Ошибка в callback_buy_booster: {e}")
+        logging.error(f"Ошибка callback_buy_booster: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("house_"))
 async def callback_house(callback: CallbackQuery):
@@ -776,7 +776,7 @@ async def callback_house(callback: CallbackQuery):
         
         await callback.answer()
     except Exception as e:
-        logging.error(f"Ошибка в callback_house: {e}")
+        logging.error(f"Ошибка callback_house: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("farm_"))
 async def callback_farm(callback: CallbackQuery):
@@ -806,7 +806,7 @@ async def callback_farm(callback: CallbackQuery):
         
         await callback.answer()
     except Exception as e:
-        logging.error(f"Ошибка в callback_farm: {e}")
+        logging.error(f"Ошибка callback_farm: {e}")
 
 @dp.message(Command("посадить"))
 async def cmd_plant(message: Message):
@@ -826,7 +826,7 @@ async def cmd_plant(message: Message):
         success, msg = await plant_crop(message.from_user.id, plot_index, crop_id)
         await message.answer(f"{'✅' if success else '❌'} {msg}")
     except Exception as e:
-        logging.error(f"Ошибка в /посадить: {e}")
+        logging.error(f"Ошибка cmd_plant: {e}")
         await message.answer("❌ Ошибка.")
 
 @dp.message(Command("собрать"))
@@ -841,7 +841,7 @@ async def cmd_harvest(message: Message):
         success, msg = await harvest_crop(message.from_user.id, plot_index)
         await message.answer(f"{'✅' if success else '⏳'} {msg}")
     except Exception as e:
-        logging.error(f"Ошибка в /собрать: {e}")
+        logging.error(f"Ошибка cmd_harvest: {e}")
         await message.answer("❌ Ошибка.")
 
 @dp.message(Command("баланс"))
@@ -858,7 +858,7 @@ async def cmd_balance(message: Message):
         text += f"🏠 Дом: ур. {user.get('house_level', 1)}"
         await message.answer(text)
     except Exception as e:
-        logging.error(f"Ошибка в /баланс: {e}")
+        logging.error(f"Ошибка cmd_balance: {e}")
         await message.answer("❌ Ошибка.")
 
 @dp.message(Command("магазин"))
@@ -874,7 +874,7 @@ async def cmd_shop(message: Message):
         
         await message.answer(f"🏪 Магазин\n\nБаланс: {balance}\n\n🔧 Улучшения:\n🔄 Авто-сбор — 500\n📈 x2 — 1000\n⏰ Бонус 2ч — 300\n\n🎨 Скины:\n🍷 Вино — 200\n💎 Алмаз — 500\n\n💚 Сброс — 100", reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"Ошибка в /магазин: {e}")
+        logging.error(f"Ошибка cmd_shop: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("buy_"))
 async def callback_buy(callback: CallbackQuery):
@@ -908,11 +908,11 @@ async def callback_buy(callback: CallbackQuery):
         await buy_item(user_id, item_id)
         await callback.answer(f"✅ {item['name']} куплен!")
     except Exception as e:
-        logging.error(f"Ошибка в callback_buy: {e}")
+        logging.error(f"Ошибка callback_buy: {e}")
 
 @dp.message(Command("помощь"))
 async def cmd_help(message: Message):
-    await message.answer("📚 Справка\n\n🌾 /ферма — ферма\n🏠 /дом — дом\n🎁 /подарки — подарки\n🚀 /бустеры — бустеры\n🌱 /посадить [грядка] [культура]\n🚜 /собрать [грядка]\n💰 /баланс — баланс\n❓ /помощь — справка")
+    await message.answer("📚 Справка\n\n🌾 /ферма — ферма\n🏠 /дом — дом\n🎁 /подарки — подарки\n🚀 /бустеры — бустеры\n🌱 /посадить [грядка] [культура]\n🚜 /собрать [грядка]\n💰 /баланс — баланс\n🏪 /магазин — магазин\n❓ /помощь — справка")
 
 @dp.message(Command("топ"))
 async def cmd_top(message: Message):
@@ -922,7 +922,7 @@ async def cmd_top(message: Message):
             await message.answer("📊 Пока нет игроков")
             return
         
-        text = "🏆 Топ\n\n"
+        text = "🏆 Топ игроков\n\n"
         for i, row in enumerate(top, 1):
             medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
             try:
@@ -933,7 +933,7 @@ async def cmd_top(message: Message):
             text += f"{medal} {name} — {row['balance']}\n"
         await message.answer(text)
     except Exception as e:
-        logging.error(f"Ошибка в /топ: {e}")
+        logging.error(f"Ошибка cmd_top: {e}")
 
 @dp.message(Command("статистика"))
 async def cmd_stats(message: Message):
@@ -942,7 +942,7 @@ async def cmd_stats(message: Message):
         grapes = await get_total_grapes()
         await message.answer(f"📊 Статистика\n\n👥 Игроков: {total}\n🍇 Всего: {grapes or 0}")
     except Exception as e:
-        logging.error(f"Ошибка в /статистика: {e}")
+        logging.error(f"Ошибка cmd_stats: {e}")
 
 async def main():
     try:
