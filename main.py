@@ -974,40 +974,102 @@ async def callback_farm(callback: CallbackQuery):
         user_id = callback.from_user.id
         action = callback.data.replace("farm_", "")
         
-        # СНАЧАЛА отвечаем на callback!
         await callback.answer()
         
         if action == "plant":
+            # Показываем выбор культур
             keyboard = InlineKeyboardBuilder()
             for crop_id, crop in CROPS.items():
                 keyboard.button(
                     text=f"{crop['name']} - {crop['cost']} 🍇", 
-                    callback_data=f"plant_select_{crop_id}"
+                    callback_data=f"plant_crop_{crop_id}"
                 )
             keyboard.adjust(2)
             
             await callback.message.answer(
-                "🌱 Выберите культуру:", 
+                "🌱 **Выберите культуру для посадки:**", 
                 reply_markup=keyboard.as_markup()
             )
             
-        elif action.startswith("plant_select_"):
-            crop_id = action.replace("plant_select_", "")
+        elif action.startswith("plant_crop_"):
+            # Пользователь выбрал культуру — показываем грядки
+            crop_id = action.replace("plant_crop_", "")
             crop = CROPS.get(crop_id)
             
-            if crop:
+            if not crop:
+                await callback.message.answer("❌ Культура не найдена!")
+                return
+            
+            user = await get_user(user_id)
+            if not user:
+                await callback.message.answer("❌ Ошибка пользователя")
+                return
+            
+            plots = user.get('farm_plots', [])
+            
+            # Проверяем баланс
+            if user['balance'] < crop['cost']:
                 await callback.message.answer(
-                    f"🌱 **Выбрано:** {crop['name']}\n\n"
-                    f"💰 Цена: {crop['cost']} 🍇\n"
-                    f"⏱ Время роста: {crop['growth_time'] // 3600} ч\n"
-                    f"💵 Награда: {crop['reward']} 🍇\n\n"
-                    f"**Как посадить:**\n"
-                    f"Отправьте команду:\n"
-                    f"`/посадить 1 {crop_id}`\n\n"
-                    f"где `1` - номер грядки (1-3)"
+                    f"❌ Недостаточно винограда!\n"
+                    f"Нужно: {crop['cost']} 🍇\n"
+                    f"У вас: {user['balance']} 🍇"
+                )
+                return
+            
+            # Показываем доступные грядки
+            keyboard = InlineKeyboardBuilder()
+            available_plots = []
+            
+            for i, plot in enumerate(plots):
+                if plot == "empty" or not plot or not isinstance(plot, dict):
+                    available_plots.append(i + 1)
+                    keyboard.button(
+                        text=f"🌾 Грядка {i + 1}",
+                        callback_data=f"plant_to_{crop_id}_{i}"
+                    )
+            
+            if not available_plots:
+                await callback.message.answer(
+                    "❌ Все грядки заняты!\n\n"
+                    "🚜 Улучшите ферму: /ферма → 🚜 Улучшить"
+                )
+                return
+            
+            keyboard.adjust(3)
+            
+            await callback.message.answer(
+                f"🌱 **{crop['name']}**\n\n"
+                f"💰 Цена: {crop['cost']} 🍇\n"
+                f"⏱ Время роста: {crop['growth_time'] // 3600} ч\n"
+                f"💵 Награда: {crop['reward']} 🍇\n\n"
+                f"**Выберите грядку для посадки:**",
+                reply_markup=keyboard.as_markup()
+            )
+            
+        elif action.startswith("plant_to_"):
+            # Пользователь выбрал грядку — сажаем!
+            parts = action.replace("plant_to_", "").split("_")
+            crop_id = parts[0]
+            plot_index = int(parts[1])
+            
+            crop = CROPS.get(crop_id)
+            if not crop:
+                await callback.message.answer("❌ Культура не найдена!")
+                return
+            
+            # Сажаем культуру
+            success, msg = await plant_crop(user_id, plot_index, crop_id)
+            
+            if success:
+                await callback.message.answer(
+                    f"✅ **Успешно посажено!**\n\n"
+                    f"🌱 Культура: {crop['name']}\n"
+                    f"📍 Грядка: {plot_index + 1}\n"
+                    f"⏱ Созреет через: {crop['growth_time'] // 3600} ч\n\n"
+                    f"/ферма — посмотреть ферму"
                 )
             else:
-                await callback.message.answer("❌ Культура не найдена!")
+                await callback.message.answer(f"❌ {msg}")
             
         elif action == "upgrade":
             success, msg = await upgrade_farm_level(user_id)
