@@ -922,60 +922,42 @@ async def cmd_transfer_gift(message: Message):
 @dp.message(Command("ферма"))
 async def cmd_farm(message: Message):
     try:
-        user_id = message.from_user.id
-        user = await get_user(user_id)
+        user = await get_user(message.from_user.id)
         
         if not user:
-            await message.answer("❌ Сначала запустите бота /start")
+            await message.answer("❌ Сначала /start")
             return
         
+        plots = user.get('farm_plots', ["empty", "empty", "empty"])
         farm_level = user.get('farm_level', 1)
         farm_xp = user.get('farm_xp', 0)
-        plots = user.get('farm_plots', ["empty", "empty", "empty"])
         balance = user.get('balance', 0)
         
-        plot_emojis = {
-            "empty": "🟫",
-            "grape": "🍇",
-            "strawberry": "🍓",
-            "corn": "🌽",
-            "tomato": "🍅",
-            "pumpkin": "🎃",
-            "melon": "🍈",
-            "pineapple": "🍍",
-            "coconut": "🥥",
-            "diamond_grape": "💎",
-            "golden_apple": "🍎"
-        }
-        
-        farm_display = []
         now = int(time.time())
-        speed_bonus = await get_booster_effect(user_id, 'growth_speed')
         
+        # Визуализация грядок
+        grid_text = ""
         for i, plot in enumerate(plots):
+            grid_text += f"**Грядка {i+1}:** "
+            
             if plot == "empty" or not plot or not isinstance(plot, dict):
-                farm_display.append("🟫")
+                grid_text += "🟫 Пусто\n"
             else:
                 crop = CROPS.get(plot.get('crop'))
                 if crop:
                     planted = plot.get('planted_at', 0)
-                    growth_time = int(crop['growth_time'] / speed_bonus)
+                    growth_time = crop['growth_time']
                     ready_time = planted + growth_time
                     
                     if now >= ready_time:
-                        farm_display.append(f"✅{plot_emojis.get(crop.get('crop'), '🌱')}")
+                        grid_text += f"{crop['name']} ✅ Готово!\n"
                     else:
                         remaining = ready_time - now
                         hours = remaining // 3600
                         minutes = (remaining % 3600) // 60
-                        farm_display.append(f"⏳{plot_emojis.get(crop.get('crop'), '🌱')}")
+                        grid_text += f"{crop['name']} ⏳ {hours}ч {minutes}м\n"
                 else:
-                    farm_display.append("🟫")
-        
-        farm_grid = ""
-        for i in range(0, len(farm_display), 3):
-            row = farm_display[i:i+3]
-            farm_grid += " ".join(row) + "\n"
+                    grid_text += "🟫 Пусто\n"
         
         keyboard = InlineKeyboardBuilder()
         keyboard.button(text="🌱 Посадить культуру", callback_data="farm_plant")
@@ -988,8 +970,8 @@ async def cmd_farm(message: Message):
             f"👤 Уровень фермы: {farm_level}\n"
             f"✨ Опыт: {farm_xp}\n"
             f"💰 Баланс: {balance:,} 🍇\n\n"
-            f"📍 **Ваши грядки:**\n"
-            f"{farm_grid}\n"
+            f"**Ваши грядки:**\n"
+            f"{grid_text}\n"
             f"💡 Нажмите на кнопку, чтобы начать!"
         )
         
