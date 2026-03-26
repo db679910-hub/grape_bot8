@@ -1,28 +1,3 @@
-def create_progress_bar(current, max_value, length=10):
-    """Создаёт визуальный прогресс-бар"""
-    if max_value == 0:
-        return "▱" * length + " 0/0"
-    percent = min(int((current / max_value) * length), length)
-    filled = "▰" * percent
-    empty = "▱" * (length - percent)
-    return f"{filled}{empty} {current}/{max_value}"
-
-async def harvest_notification(user_id, crop_name, reward):
-    """Красивое уведомление об урожае"""
-    text = f"""
-🎉 **УРОЖАЙ СОБРАН!** 🎉
-{'═' * 25}
-
-🌾 Культура: {crop_name}
-💰 Награда: {reward} 🍇
-
-{'═' * 25}
-Продолжай в том же духе! 💪
-"""
-    try:
-        await bot.send_message(user_id, text, parse_mode="Markdown")
-    except:
-        passimport asyncio
 import logging
 import time
 import os
