@@ -34,7 +34,10 @@ CROPS = {
     "tomato": {"name": "🍅 Томат", "cost": 200, "reward": 400, "growth_time": 18000, "xp": 60},
     "pumpkin": {"name": "🎃 Тыква", "cost": 500, "reward": 1200, "growth_time": 28800, "xp": 100},
     "melon": {"name": "🍈 Дыня", "cost": 1000, "reward": 2500, "growth_time": 43200, "xp": 200},
+    "pineapple": {"name": "🍍 Ананас", "cost": 2000, "reward": 5500, "growth_time": 57600, "xp": 350},
+    "coconut": {"name": "🥥 Кокос", "cost": 3500, "reward": 8000, "growth_time": 72000, "xp": 450},
     "diamond_grape": {"name": "💎 Алмазный виноград", "cost": 5000, "reward": 15000, "growth_time": 86400, "xp": 500},
+    "golden_apple": {"name": "🍎 Золотое яблоко", "cost": 10000, "reward": 35000, "growth_time": 172800, "xp": 1000},
 }
 
 FARM_PLOTS = {
@@ -43,6 +46,10 @@ FARM_PLOTS = {
     3: {"level": 3, "plots": 7, "upgrade_cost": 1500},
     4: {"level": 4, "plots": 10, "upgrade_cost": 3000},
     5: {"level": 5, "plots": 15, "upgrade_cost": 6000},
+    6: {"level": 6, "plots": 20, "upgrade_cost": 12000},
+    7: {"level": 7, "plots": 25, "upgrade_cost": 25000},
+    8: {"level": 8, "plots": 30, "upgrade_cost": 50000},
+    9: {"level": 9, "plots": 40, "upgrade_cost": 100000},
 }
 
 TOOLS = {
@@ -50,27 +57,46 @@ TOOLS = {
     "watering_can": {"name": "🚿 Лейка", "price": 500, "effect": "growth_speed", "bonus": 1.2},
     "fertilizer": {"name": "💩 Удобрение", "price": 1000, "effect": "growth_speed", "bonus": 1.3},
     "tractor": {"name": "🚜 Трактор", "price": 3000, "effect": "growth_speed", "bonus": 1.5},
+    "harvester": {"name": "🌾 Комбайн", "price": 7500, "effect": "growth_speed", "bonus": 1.7},
+    "drone": {"name": "🚁 Дрон", "price": 15000, "effect": "growth_speed", "bonus": 2.0},
+    "ai_system": {"name": "🤖 ИИ Система", "price": 35000, "effect": "growth_speed", "bonus": 2.5},
 }
 
 GIFT_CATALOG = {
     "chocolate": {"name": "🍫 Шоколадка", "price": 50, "rarity": "common"},
     "flower": {"name": "🌹 Роза", "price": 100, "rarity": "common"},
     "balloon": {"name": "🎈 Шарик", "price": 75, "rarity": "common"},
+    "cupcake": {"name": "🧁 Капкейк", "price": 150, "rarity": "common"},
     "teddy": {"name": "🧸 Мишка", "price": 300, "rarity": "rare"},
     "ring": {"name": "💍 Кольцо", "price": 500, "rarity": "rare"},
+    "necklace": {"name": "📿 Ожерелье", "price": 750, "rarity": "rare"},
     "car": {"name": "🏎️ Спорткар", "price": 2000, "rarity": "epic"},
     "house": {"name": "🏡 Дом", "price": 5000, "rarity": "epic"},
+    "yacht": {"name": "🛥️ Яхта", "price": 10000, "rarity": "epic"},
     "diamond": {"name": "💎 Алмаз", "price": 15000, "rarity": "legendary"},
-    "crown": {"name": "👑 Корона", "price": 20000, "rarity": "legendary"},
+    "crown": {"name": "👑 Корона", "price": 25000, "rarity": "legendary"},
+    "rocket": {"name": "🚀 Ракета", "price": 50000, "rarity": "legendary"},
 }
 
 BOOSTERS = {
     "speed_1h": {"name": "⚡ Ускорение 1ч", "price": 50, "duration": 3600, "effect": "growth_speed", "bonus": 1.5},
     "speed_4h": {"name": "⚡ Ускорение 4ч", "price": 150, "duration": 14400, "effect": "growth_speed", "bonus": 1.5},
+    "speed_12h": {"name": "⚡ Ускорение 12ч", "price": 350, "duration": 43200, "effect": "growth_speed", "bonus": 1.5},
+    "speed_24h": {"name": "⚡ Ускорение 24ч", "price": 600, "duration": 86400, "effect": "growth_speed", "bonus": 1.5},
+    
     "yield_1h": {"name": "📈 Урожай 1ч", "price": 75, "duration": 3600, "effect": "yield", "bonus": 1.3},
     "yield_4h": {"name": "📈 Урожай 4ч", "price": 200, "duration": 14400, "effect": "yield", "bonus": 1.3},
+    "yield_12h": {"name": "📈 Урожай 12ч", "price": 500, "duration": 43200, "effect": "yield", "bonus": 1.3},
+    "yield_24h": {"name": "📈 Урожай 24ч", "price": 800, "duration": 86400, "effect": "yield", "bonus": 1.3},
+    
     "income_1h": {"name": "💰 Доход 1ч", "price": 120, "duration": 3600, "effect": "passive_income", "bonus": 2.0},
     "income_4h": {"name": "💰 Доход 4ч", "price": 350, "duration": 14400, "effect": "passive_income", "bonus": 2.0},
+    "income_12h": {"name": "💰 Доход 12ч", "price": 800, "duration": 43200, "effect": "passive_income", "bonus": 2.0},
+    "income_24h": {"name": "💰 Доход 24ч", "price": 1200, "duration": 86400, "effect": "passive_income", "bonus": 2.0},
+    
+    "super_booster_1h": {"name": "🌟 СУПЕР 1ч", "price": 500, "duration": 3600, "effect": "all", "bonus": 1.5},
+    "super_booster_4h": {"name": "🌟 СУПЕР 4ч", "price": 1500, "duration": 14400, "effect": "all", "bonus": 1.5},
+    "super_booster_24h": {"name": "🌟 СУПЕР 24ч", "price": 5000, "duration": 86400, "effect": "all", "bonus": 1.5},
 }
 
 HOUSES = {
@@ -79,18 +105,26 @@ HOUSES = {
     "cottage": {"name": "🏡 Коттедж", "level": 3, "price": 5000, "passive_income": 20},
     "mansion": {"name": "🏰 Особняк", "level": 4, "price": 15000, "passive_income": 50},
     "castle": {"name": "🏯 Замок", "level": 5, "price": 50000, "passive_income": 150},
+    "palace": {"name": "👑 Дворец", "level": 6, "price": 150000, "passive_income": 500},
+    "sky_mansion": {"name": "☁️ Небесный особняк", "level": 7, "price": 500000, "passive_income": 1500},
+    "dragon_castle": {"name": "🐉 Замок дракона", "level": 8, "price": 1500000, "passive_income": 5000},
+    "god_palace": {"name": "✨ Дворец богов", "level": 9, "price": 5000000, "passive_income": 15000},
 }
 
 logging.basicConfig(level=logging.INFO)
 pool = None
 
 SHOP_ITEMS = {
-    "auto_collect": {"name": "🔄 Авто-сбор", "price": 500, "desc": "Без кулдауна", "type": "upgrade"},
-    "double_grapes": {"name": "📈 Умножение x2", "price": 1000, "desc": "x2 винограда", "type": "upgrade"},
-    "bonus_2h": {"name": "⏰ Бонус 2ч", "price": 300, "desc": "Бонус каждые 2 часа", "type": "upgrade"},
-    "skin_wine": {"name": "🍷 Скин Вино", "price": 200, "desc": "Меняет эмодзи", "type": "skin"},
-    "skin_diamond": {"name": "💎 Скин Алмаз", "price": 500, "desc": "Меняет эмодзи", "type": "skin"},
-    "restore": {"name": "💚 Восстановление", "price": 100, "desc": "Сброс кулдауна", "type": "consumable"}
+    "auto_collect": {"name": "🔄 Авто-сбор", "price": 1000, "desc": "Без кулдауна", "type": "upgrade"},
+    "double_grapes": {"name": "📈 Умножение x2", "price": 2500, "desc": "x2 винограда", "type": "upgrade"},
+    "triple_grapes": {"name": "📈 Умножение x3", "price": 7500, "desc": "x3 винограда", "type": "upgrade"},
+    "bonus_2h": {"name": "⏰ Бонус 2ч", "price": 500, "desc": "Бонус каждые 2 часа", "type": "upgrade"},
+    "bonus_1h": {"name": "⏰ Бонус 1ч", "price": 800, "desc": "Бонус каждые 1 час", "type": "upgrade"},
+    "skin_wine": {"name": "🍷 Скин Вино", "price": 500, "desc": "Меняет эмодзи", "type": "skin"},
+    "skin_diamond": {"name": "💎 Скин Алмаз", "price": 1500, "desc": "Меняет эмодзи", "type": "skin"},
+    "skin_gold": {"name": "🏆 Скин Золото", "price": 3000, "desc": "Меняет эмодзи", "type": "skin"},
+    "restore": {"name": "💚 Восстановление", "price": 200, "desc": "Сброс кулдауна", "type": "consumable"},
+    "lucky_charm": {"name": "🍀 Талисман удачи", "price": 750, "desc": "+5% к шансу крита", "type": "consumable"},
 }
 
 def generate_ref_code():
