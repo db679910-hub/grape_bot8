@@ -13,7 +13,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Настройки сбора (НЕ МЕНЯТЬ)
+# Настройки сбора
 GRAPE_REWARD = 15
 COOLDOWN_HOURS = 4
 COOLDOWN_SECONDS = COOLDOWN_HOURS * 3600
@@ -23,6 +23,10 @@ BONUS_AMOUNT = 50
 BONUS_HOURS = 4
 REFERRAL_BONUS = 100
 REFERRAL_PERCENT = 10
+
+# Настройки казино
+CASINO_MIN_BET = 10
+CASINO_MAX_BET = 10000
 
 logging.basicConfig(level=logging.INFO)
 pool = None
@@ -59,7 +63,11 @@ async def init_db():
                     ref_code VARCHAR(20) UNIQUE,
                     invited_by BIGINT,
                     total_invited INTEGER DEFAULT 0,
-                    passive_income INTEGER DEFAULT 0
+                    passive_income INTEGER DEFAULT 0,
+                    casino_wins INTEGER DEFAULT 0,
+                    casino_losses INTEGER DEFAULT 0,
+                    casino_total_won INTEGER DEFAULT 0,
+                    casino_total_lost INTEGER DEFAULT 0
                 )
             """)
             
@@ -71,7 +79,11 @@ async def init_db():
                 ("auto_collect", "BOOLEAN DEFAULT FALSE"),
                 ("double_grapes", "BOOLEAN DEFAULT FALSE"),
                 ("bonus_2h", "BOOLEAN DEFAULT FALSE"),
-                ("skin", "VARCHAR(20) DEFAULT 'grape'")
+                ("skin", "VARCHAR(20) DEFAULT 'grape'"),
+                ("casino_wins", "INTEGER DEFAULT 0"),
+                ("casino_losses", "INTEGER DEFAULT 0"),
+                ("casino_total_won", "INTEGER DEFAULT 0"),
+                ("casino_total_lost", "INTEGER DEFAULT 0")
             ]
             
             for col_name, col_type in columns_to_add:
@@ -187,6 +199,22 @@ async def buy_item(user_id, item_id):
     except Exception as e:
         logging.error(f"❌ Ошибка buy_item: {e}")
 
+async def update_casino_stats(user_id, won, amount):
+    try:
+        async with pool.acquire() as conn:
+            if won:
+                await conn.execute(
+                    "UPDATE users SET casino_wins = casino_wins + 1, casino_total_won = casino_total_won + $1 WHERE user_id = $2",
+                    amount, user_id
+                )
+            else:
+                await conn.execute(
+                    "UPDATE users SET casino_losses = casino_losses + 1, casino_total_lost = casino_total_lost + $1 WHERE user_id = $2",
+                    amount, user_id
+                )
+    except Exception as e:
+        logging.error(f"❌ Ошибка update_casino_stats: {e}")
+
 async def get_skin_emoji(skin):
     return {"grape": "🍇", "wine": "🍷", "diamond": "💎"}.get(skin, "🍇")
 
@@ -242,6 +270,7 @@ async def cmd_start(message: Message):
                 f"📋 Команды:\n"
                 f"/сбор — собрать 15 🍇 (каждые 4 часа)\n"
                 f"/баланс — проверить баланс\n"
+                f"/казино — играть в казино\n"
                 f"/магазин — открыть магазин\n"
                 f"/пригласить — получить ссылку\n"
                 f"/бонус — бонус каждые 4 часа\n"
@@ -409,6 +438,160 @@ async def callback_buy(callback):
     except Exception as e:
         logging.error(f"❌ Ошибка в callback_buy: {e}")
 
+@dp.message(Command("казино"))
+async def cmd_casino(message: Message):
+    try:
+        user_id = message.from_user.id
+        await add_user(user_id)
+        user = await get_user(user_id)
+        balance = user.get('balance', 0) if user else 0
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🎰 Слоты", callback_data="casino_slots")
+        keyboard.button(text="🎲 Кубики", callback_data="casino_dice")
+        keyboard.button(text="🪙 Монетка", callback_data="casino_coin")
+        keyboard.button(text="📊 Моя статистика", callback_data="casino_stats")
+        keyboard.adjust(2)
+        
+        await message.answer(
+            f"🎰 **Казино**\n\n"
+            f"Ваш баланс: {balance} 🍇\n\n"
+            f"🎮 Игры:\n"
+            f"🎰 Слоты — x3 выигрыш (33% шанс)\n"
+            f"🎲 Кубики — x2 выигрыш (50% шанс)\n"
+            f"🪙 Монетка — x2 выигрыш (50% шанс)\n\n"
+            f"Минимальная ставка: {CASINO_MIN_BET} 🍇\n"
+            f"Максимальная ставка: {CASINO_MAX_BET} 🍇\n\n"
+            f"Выберите игру!",
+            reply_markup=keyboard.as_markup()
+        )
+    except Exception as e:
+        logging.error(f"❌ Ошибка в /казино: {e}")
+        await message.answer("❌ Ошибка казино.")
+
+@dp.callback_query(lambda c: c.data.startswith("casino_"))
+async def callback_casino(callback):
+    try:
+        user_id = callback.from_user.id
+        action = callback.data.replace("casino_", "")
+        
+        if action == "stats":
+            user = await get_user(user_id)
+            wins = user.get('casino_wins', 0) if user else 0
+            losses = user.get('casino_losses', 0) if user else 0
+            total_won = user.get('casino_total_won', 0) if user else 0
+            total_lost = user.get('casino_total_lost', 0) if user else 0
+            
+            await callback.message.answer(
+                f"📊 **Ваша статистика в казино**\n\n"
+                f"🏆 Побед: {wins}\n"
+                f"❌ Поражений: {losses}\n"
+                f"💰 Всего выиграно: {total_won} 🍇\n"
+                f"💸 Всего проиграно: {total_lost} 🍇\n\n"
+                f"Баланс: {total_won - total_lost} 🍇"
+            )
+            await callback.answer()
+            return
+        
+        user = await get_user(user_id)
+        balance = user.get('balance', 0) if user else 0
+        
+        if balance < CASINO_MIN_BET:
+            await callback.answer(f"❌ Минимальная ставка {CASINO_MIN_BET} 🍇", show_alert=True)
+            return
+        
+        keyboard = InlineKeyboardBuilder()
+        bets = [10, 50, 100, 500, 1000]
+        for bet in bets:
+            if bet <= balance:
+                keyboard.button(text=f"{bet} 🍇", callback_data=f"bet_{action}_{bet}")
+        keyboard.button(text="Своя сумма", callback_data=f"bet_{action}_custom")
+        keyboard.adjust(3)
+        
+        game_names = {"slots": "🎰 Слоты", "dice": "🎲 Кубики", "coin": "🪙 Монетка"}
+        
+        await callback.message.answer(
+            f"{game_names.get(action, 'Игра')}\n\n"
+            f"Ваш баланс: {balance} 🍇\n\n"
+            f"Выберите ставку:",
+            reply_markup=keyboard.as_markup()
+        )
+        await callback.answer()
+    except Exception as e:
+        logging.error(f"❌ Ошибка в callback_casino (выбор): {e}")
+
+@dp.callback_query(lambda c: c.data.startswith("bet_"))
+async def callback_bet(callback):
+    try:
+        user_id = callback.from_user.id
+        parts = callback.data.replace("bet_", "").split("_")
+        game = parts[0]
+        bet_amount = parts[1]
+        
+        if bet_amount == "custom":
+            await callback.message.answer(
+                f"Введите сумму ставки (от {CASINO_MIN_BET} до {CASINO_MAX_BET}):"
+            )
+            await callback.answer()
+            return
+        
+        bet_amount = int(bet_amount)
+        user = await get_user(user_id)
+        balance = user.get('balance', 0) if user else 0
+        
+        if bet_amount < CASINO_MIN_BET or bet_amount > CASINO_MAX_BET:
+            await callback.answer(f"❌ Ставка от {CASINO_MIN_BET} до {CASINO_MAX_BET}", show_alert=True)
+            return
+        
+        if balance < bet_amount:
+            await callback.answer("❌ Недостаточно винограда", show_alert=True)
+            return
+        
+        await update_balance(user_id, -bet_amount)
+        
+        if game == "slots":
+            win_chance = 0.33
+            win_multiplier = 3
+        elif game == "dice":
+            win_chance = 0.5
+            win_multiplier = 2
+        elif game == "coin":
+            win_chance = 0.5
+            win_multiplier = 2
+        else:
+            win_chance = 0.5
+            win_multiplier = 2
+        
+        won = random.random() < win_chance
+        
+        if won:
+            win_amount = bet_amount * win_multiplier
+            await update_balance(user_id, win_amount)
+            await update_casino_stats(user_id, True, bet_amount)
+            
+            emojis = {"slots": "🎰", "dice": "🎲", "coin": "🪙"}
+            await callback.message.answer(
+                f"{emojis.get(game, '🎰')} **ПОБЕДА!**\n\n"
+                f"Ставка: {bet_amount} 🍇\n"
+                f"Выигрыш: {win_amount} 🍇\n"
+                f"Прибыль: +{win_amount - bet_amount} 🍇\n\n"
+                f"Поздравляю! 🎉"
+            )
+        else:
+            await update_casino_stats(user_id, False, bet_amount)
+            
+            emojis = {"slots": "🎰", "dice": "🎲", "coin": "🪙"}
+            await callback.message.answer(
+                f"{emojis.get(game, '🎰')} **ПРОИГРЫШ**\n\n"
+                f"Ставка: {bet_amount} 🍇\n"
+                f"Попробуй ещё раз! 🍀"
+            )
+        
+        await callback.answer()
+    except Exception as e:
+        logging.error(f"❌ Ошибка в callback_bet: {e}")
+        await callback.message.answer("❌ Ошибка игры. Попробуйте позже.")
+
 @dp.message(Command("пригласить"))
 async def cmd_invite(message: Message):
     try:
@@ -505,6 +688,7 @@ async def cmd_help(message: Message):
             f"🍇 Основные команды:\n"
             f"/сбор — собрать 15 🍇 (каждые 4 часа)\n"
             f"/баланс — проверить баланс\n"
+            f"/казино — играть в казино\n"
             f"/магазин — купить улучшения\n"
             f"/бонус — бонус каждые 4 часа (+50 🍇)\n"
             f"/пригласить — реферальная ссылка\n"
@@ -515,6 +699,10 @@ async def cmd_help(message: Message):
             f"🔄 Авто-сбор — без кулдауна\n"
             f"📈 x2 — удвоение сбора\n"
             f"⏰ Бонус 2ч — бонус чаще\n\n"
+            f"🎰 Казино:\n"
+            f"🎰 Слоты — x3 (33% шанс)\n"
+            f"🎲 Кубики — x2 (50% шанс)\n"
+            f"🪙 Монетка — x2 (50% шанс)\n\n"
             f"Удачи в сборе винограда! 🍇"
         )
     except Exception as e:
