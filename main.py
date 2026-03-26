@@ -23,27 +23,9 @@ BONUS_HOURS = 4
 REFERRAL_BONUS = 100
 REFERRAL_PERCENT = 10
 
-HOUSES = {
-    "tent": {"name": "⛺ Палатка", "level": 1, "price": 0, "passive_income": 1, "desc": "Простое жильё"},
-    "hut": {"name": "🛖 Хижина", "level": 2, "price": 1000, "passive_income": 5, "desc": "Уютная хижина"},
-    "cottage": {"name": "🏡 Коттедж", "level": 3, "price": 5000, "passive_income": 20, "desc": "Загородный дом"},
-    "mansion": {"name": "🏰 Особняк", "level": 4, "price": 15000, "passive_income": 50, "desc": "Роскошный особняк"},
-    "castle": {"name": "🏯 Замок", "level": 5, "price": 50000, "passive_income": 150, "desc": "Королевский замок"},
-    "palace": {"name": "👑 Дворец", "level": 6, "price": 150000, "passive_income": 500, "desc": "Императорский дворец"},
-}
-
-BOOSTERS = {
-    "speed_1h": {"name": "⚡ Ускорение 1ч", "price": 50, "duration": 3600, "effect": "growth_speed", "bonus": 1.5},
-    "speed_4h": {"name": "⚡ Ускорение 4ч", "price": 150, "duration": 14400, "effect": "growth_speed", "bonus": 1.5},
-    "speed_24h": {"name": "⚡ Ускорение 24ч", "price": 500, "duration": 86400, "effect": "growth_speed", "bonus": 1.5},
-    "yield_1h": {"name": "📈 Урожай 1ч", "price": 75, "duration": 3600, "effect": "yield", "bonus": 1.3},
-    "yield_4h": {"name": "📈 Урожай 4ч", "price": 200, "duration": 14400, "effect": "yield", "bonus": 1.3},
-    "yield_24h": {"name": "📈 Урожай 24ч", "price": 600, "duration": 86400, "effect": "yield", "bonus": 1.3},
-    "income_1h": {"name": "💰 Доход 1ч", "price": 120, "duration": 3600, "effect": "passive_income", "bonus": 2.0},
-    "income_4h": {"name": "💰 Доход 4ч", "price": 350, "duration": 14400, "effect": "passive_income", "bonus": 2.0},
-    "income_24h": {"name": "💰 Доход 24ч", "price": 1000, "duration": 86400, "effect": "passive_income", "bonus": 2.0},
-    "super_booster": {"name": "🌟 СУПЕР БУСТЕР", "price": 2000, "duration": 43200, "effect": "all", "bonus": 1.5},
-}
+GIFT_MIN = 10
+GIFT_MAX = 10000
+GIFT_COMMISSION = 5
 
 CROPS = {
     "grape": {"name": "🍇 Виноград", "cost": 0, "reward": 15, "growth_time": 14400, "xp": 10},
@@ -70,19 +52,44 @@ TOOLS = {
     "tractor": {"name": "🚜 Трактор", "price": 3000, "effect": "growth_speed", "bonus": 1.5},
 }
 
-GIFT_MIN = 10
-GIFT_MAX = 10000
-GIFT_COMMISSION = 5
+GIFT_CATALOG = {
+    "chocolate": {"name": "🍫 Шоколадка", "price": 50, "rarity": "common"},
+    "flower": {"name": "🌹 Роза", "price": 100, "rarity": "common"},
+    "balloon": {"name": "🎈 Шарик", "price": 75, "rarity": "common"},
+    "teddy": {"name": "🧸 Мишка", "price": 300, "rarity": "rare"},
+    "ring": {"name": "💍 Кольцо", "price": 500, "rarity": "rare"},
+    "car": {"name": "🏎️ Спорткар", "price": 2000, "rarity": "epic"},
+    "house": {"name": "🏡 Дом", "price": 5000, "rarity": "epic"},
+    "diamond": {"name": "💎 Алмаз", "price": 15000, "rarity": "legendary"},
+    "crown": {"name": "👑 Корона", "price": 20000, "rarity": "legendary"},
+}
+
+BOOSTERS = {
+    "speed_1h": {"name": "⚡ Ускорение 1ч", "price": 50, "duration": 3600, "effect": "growth_speed", "bonus": 1.5},
+    "speed_4h": {"name": "⚡ Ускорение 4ч", "price": 150, "duration": 14400, "effect": "growth_speed", "bonus": 1.5},
+    "yield_1h": {"name": "📈 Урожай 1ч", "price": 75, "duration": 3600, "effect": "yield", "bonus": 1.3},
+    "yield_4h": {"name": "📈 Урожай 4ч", "price": 200, "duration": 14400, "effect": "yield", "bonus": 1.3},
+    "income_1h": {"name": "💰 Доход 1ч", "price": 120, "duration": 3600, "effect": "passive_income", "bonus": 2.0},
+    "income_4h": {"name": "💰 Доход 4ч", "price": 350, "duration": 14400, "effect": "passive_income", "bonus": 2.0},
+}
+
+HOUSES = {
+    "tent": {"name": "⛺ Палатка", "level": 1, "price": 0, "passive_income": 1},
+    "hut": {"name": "🛖 Хижина", "level": 2, "price": 1000, "passive_income": 5},
+    "cottage": {"name": "🏡 Коттедж", "level": 3, "price": 5000, "passive_income": 20},
+    "mansion": {"name": "🏰 Особняк", "level": 4, "price": 15000, "passive_income": 50},
+    "castle": {"name": "🏯 Замок", "level": 5, "price": 50000, "passive_income": 150},
+}
 
 logging.basicConfig(level=logging.INFO)
 pool = None
 
 SHOP_ITEMS = {
     "auto_collect": {"name": "🔄 Авто-сбор", "price": 500, "desc": "Сбор без кулдауна", "type": "upgrade"},
-    "double_grapes": {"name": "📈 Умножение x2", "price": 1000, "desc": "Сбор x2 винограда", "type": "upgrade"},
+    "double_grapes": {"name": "📈 Умножение x2", "price": 1000, "desc": "Сбор x2", "type": "upgrade"},
     "bonus_2h": {"name": "⏰ Бонус 2ч", "price": 300, "desc": "Бонус каждые 2 часа", "type": "upgrade"},
-    "skin_wine": {"name": "🍷 Скин Вино", "price": 200, "desc": "Меняет эмодзи на вино", "type": "skin"},
-    "skin_diamond": {"name": "💎 Скин Алмаз", "price": 500, "desc": "Меняет эмодзи на алмаз", "type": "skin"},
+    "skin_wine": {"name": "🍷 Скин Вино", "price": 200, "desc": "Меняет эмодзи", "type": "skin"},
+    "skin_diamond": {"name": "💎 Скин Алмаз", "price": 500, "desc": "Меняет эмодзи", "type": "skin"},
     "restore": {"name": "💚 Восстановление", "price": 100, "desc": "Сброс кулдауна", "type": "consumable"}
 }
 
@@ -93,7 +100,7 @@ async def init_db():
     global pool
     try:
         pool = await asyncpg.create_pool(DATABASE_URL)
-        logging.info("✅ Подключение к базе данных успешно!")
+        logging.info("Подключение к базе данных успешно!")
         
         async with pool.acquire() as conn:
             await conn.execute("""
@@ -115,20 +122,22 @@ async def init_db():
                     farm_xp INTEGER DEFAULT 0,
                     farm_plots TEXT DEFAULT '["empty", "empty", "empty"]',
                     tools TEXT DEFAULT '[]',
-                    last_daily INTEGER DEFAULT 0,
                     house_level INTEGER DEFAULT 1,
                     house_xp INTEGER DEFAULT 0,
                     last_passive_claim INTEGER DEFAULT 0,
                     boosters TEXT DEFAULT '[]',
+                    inventory TEXT DEFAULT '[]',
+                    gifts_sent INTEGER DEFAULT 0,
+                    gifts_received INTEGER DEFAULT 0,
                     total_harvest INTEGER DEFAULT 0,
                     total_earned INTEGER DEFAULT 0
                 )
             """)
-            logging.info("✅ Таблица users готова!")
+            logging.info("Таблица users готова!")
         
-        logging.info("✅ База данных готова!")
+        logging.info("База данных готова!")
     except Exception as e:
-        logging.error(f"❌ Ошибка инициализации БД: {e}")
+        logging.error(f"Ошибка инициализации БД: {e}")
         raise
 
 async def get_user(user_id):
@@ -149,10 +158,14 @@ async def get_user(user_id):
                     result['boosters'] = json.loads(row['boosters']) if row['boosters'] else []
                 except:
                     result['boosters'] = []
+                try:
+                    result['inventory'] = json.loads(row['inventory']) if row['inventory'] else []
+                except:
+                    result['inventory'] = []
                 return result
             return None
     except Exception as e:
-        logging.error(f"❌ Ошибка get_user: {e}")
+        logging.error(f"Ошибка get_user: {e}")
         return None
 
 async def get_user_by_username(username):
@@ -181,9 +194,9 @@ async def add_user(user_id, ref_code=None, username=None):
                     inviter_id = inviter['user_id']
             
             await conn.execute(
-                "INSERT INTO users (user_id, ref_code, invited_by, username, farm_plots, tools, boosters) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (user_id) DO NOTHING",
+                "INSERT INTO users (user_id, ref_code, invited_by, username, farm_plots, tools, boosters, inventory) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (user_id) DO NOTHING",
                 user_id, my_ref_code, inviter_id, username.lower() if username else None, 
-                '["empty", "empty", "empty"]', '[]', '[]'
+                '["empty", "empty", "empty"]', '[]', '[]', '[]'
             )
             
             if inviter_id:
@@ -192,7 +205,7 @@ async def add_user(user_id, ref_code=None, username=None):
             
             return await get_user(user_id)
     except Exception as e:
-        logging.error(f"❌ Ошибка add_user: {e}")
+        logging.error(f"Ошибка add_user: {e}")
         return None
 
 async def update_balance(user_id, amount):
@@ -285,7 +298,7 @@ async def plant_crop(user_id, plot_index, crop_id):
             return False, "Культура не найдена"
         
         if user['balance'] < crop['cost']:
-            return False, f"Недостаточно винограда! Нужно {crop['cost']} 🍇"
+            return False, f"Недостаточно винограда! Нужно {crop['cost']}"
         
         plots[plot_index] = {
             "crop": crop_id,
@@ -299,7 +312,7 @@ async def plant_crop(user_id, plot_index, crop_id):
         
         return True, f"{crop['name']} посажен!"
     except Exception as e:
-        logging.error(f"❌ Ошибка plant_crop: {e}")
+        logging.error(f"Ошибка plant_crop: {e}")
         return False, "Ошибка посадки"
 
 async def harvest_crop(user_id, plot_index):
@@ -346,9 +359,9 @@ async def harvest_crop(user_id, plot_index):
             plots[plot_index] = "empty"
             await conn.execute("UPDATE users SET farm_plots = $1 WHERE user_id = $2", json.dumps(plots), user_id)
         
-        return True, f"Собрано: {reward} 🍇 (+{crop['xp']} XP)"
+        return True, f"Собрано: {reward} (+{crop['xp']} XP)"
     except Exception as e:
-        logging.error(f"❌ Ошибка harvest_crop: {e}")
+        logging.error(f"Ошибка harvest_crop: {e}")
         return False, "Ошибка сбора"
 
 async def upgrade_farm_level(user_id):
@@ -369,7 +382,7 @@ async def upgrade_farm_level(user_id):
             return False, "Ошибка улучшения"
         
         if user['balance'] < upgrade_info['upgrade_cost']:
-            return False, f"Нужно {upgrade_info['upgrade_cost']} 🍇"
+            return False, f"Нужно {upgrade_info['upgrade_cost']}"
         
         new_plots = ["empty"] * upgrade_info['plots']
         
@@ -379,7 +392,7 @@ async def upgrade_farm_level(user_id):
         
         return True, f"Ферма улучшена до уровня {next_level}! Теперь {upgrade_info['plots']} грядок."
     except Exception as e:
-        logging.error(f"❌ Ошибка upgrade_farm_level: {e}")
+        logging.error(f"Ошибка upgrade_farm_level: {e}")
         return False, "Ошибка улучшения"
 
 async def upgrade_house_level(user_id, house_id):
@@ -401,7 +414,7 @@ async def upgrade_house_level(user_id, house_id):
             return False, "Улучшайте по порядку!"
         
         if user['balance'] < house['price']:
-            return False, f"Нужно {house['price']} 🍇"
+            return False, f"Нужно {house['price']}"
         
         async with pool.acquire() as conn:
             await conn.execute("UPDATE users SET balance = balance - $1, house_level = $2, house_xp = house_xp + $3 WHERE user_id = $4",
@@ -409,7 +422,7 @@ async def upgrade_house_level(user_id, house_id):
         
         return True, f"Дом улучшен до {house['name']}!"
     except Exception as e:
-        logging.error(f"❌ Ошибка upgrade_house_level: {e}")
+        logging.error(f"Ошибка upgrade_house_level: {e}")
         return False, "Ошибка улучшения дома"
 
 async def claim_passive_income(user_id):
@@ -445,10 +458,29 @@ async def claim_passive_income(user_id):
             await conn.execute("UPDATE users SET balance = balance + $1, last_passive_claim = $2 WHERE user_id = $3",
                               total_income, now, user_id)
         
-        return True, f"Получено: {total_income} 🍇 (за {hours_passed}ч)"
+        return True, f"Получено: {total_income} (за {hours_passed}ч)"
     except Exception as e:
-        logging.error(f"❌ Ошибка claim_passive_income: {e}")
+        logging.error(f"Ошибка claim_passive_income: {e}")
         return False, "Ошибка получения дохода"
+
+async def add_to_inventory(user_id, item_id):
+    async with pool.acquire() as conn:
+        user = await get_user(user_id)
+        inventory = user.get('inventory', [])
+        inventory.append({"item_id": item_id, "quantity": 1})
+        await conn.execute("UPDATE users SET inventory = $1 WHERE user_id = $2", json.dumps(inventory), user_id)
+
+async def send_gift(from_user_id, to_user_id, amount):
+    async with pool.acquire() as conn:
+        commission = int(amount * GIFT_COMMISSION / 100)
+        received = amount - commission
+        
+        await conn.execute("UPDATE users SET balance = balance - $1 WHERE user_id = $2", amount, from_user_id)
+        await conn.execute("UPDATE users SET balance = balance + $1 WHERE user_id = $2", received, to_user_id)
+        await conn.execute("UPDATE users SET gifts_sent = gifts_sent + 1, total_gifted = total_gifted + $1 WHERE user_id = $2", amount, from_user_id)
+        await conn.execute("UPDATE users SET gifts_received = gifts_received + 1, total_received = total_received + $1 WHERE user_id = $2", received, to_user_id)
+        
+        return commission, received
 
 async def get_skin_emoji(skin):
     return {"grape": "🍇", "wine": "🍷", "diamond": "💎"}.get(skin, "🍇")
@@ -481,11 +513,11 @@ async def cmd_start(message: Message):
         user = await add_user(user_id, ref_code, username)
         
         if user:
-            await message.answer(f"🍇 Привет, {message.from_user.first_name}!\n\n📋 Команды:\n/ферма — моя ферма\n/дом — мой дом\n/бустеры — магазин\n/баланс — проверить\n/помощь — справка")
+            await message.answer(f"🍇 Привет, {message.from_user.first_name}!\n\n📋 Команды:\n/ферма — моя ферма\n/дом — мой дом\n/подарки — магазин подарков\n/бустеры — бустеры\n/баланс — проверить\n/помощь — справка")
         else:
             await message.answer("❌ Ошибка регистрации")
     except Exception as e:
-        logging.error(f"❌ Ошибка в /start: {e}")
+        logging.error(f"Ошибка в /start: {e}")
         await message.answer("❌ Произошла ошибка.")
 
 @dp.message(Command("ферма"))
@@ -536,15 +568,15 @@ async def cmd_farm(message: Message):
         keyboard.button(text="📊 Статистика", callback_data="farm_stats")
         keyboard.adjust(2)
         
-        text = f"🌾 **Ваша ферма**\n\n"
+        text = f"🌾 Ваша ферма\n\n"
         text += f"📊 Уровень: {farm_level}\n"
         text += f"✨ Опыт: {farm_xp}\n"
         text += f"🍇 Баланс: {balance}\n\n"
-        text += f"**Грядки:**\n" + "\n".join(plot_display)
+        text += f"Грядки:\n" + "\n".join(plot_display)
         
         await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"❌ Ошибка в /ферма: {e}")
+        logging.error(f"Ошибка в /ферма: {e}")
         await message.answer("❌ Ошибка фермы.")
 
 @dp.message(Command("дом"))
@@ -584,28 +616,95 @@ async def cmd_house(message: Message):
         keyboard = InlineKeyboardBuilder()
         keyboard.button(text="💰 Забрать доход", callback_data="house_claim")
         if next_house:
-            keyboard.button(text=f"🔨 Улучшить ({next_house['price']} 🍇)", callback_data=f"house_upgrade_{next_house['level']}")
+            keyboard.button(text=f"🔨 Улучшить ({next_house['price']})", callback_data=f"house_upgrade_{next_house['level']}")
         keyboard.button(text="📊 Статистика", callback_data="house_stats")
         keyboard.adjust(2)
         
-        text = f"🏠 **Ваш дом**\n\n"
-        text += f"{house['name']}\n"
-        text += f"{house['desc']}\n\n"
+        text = f"🏠 Ваш дом\n\n"
+        text += f"{house['name']}\n\n"
         text += f"📊 Уровень: {house_level}\n"
         text += f"✨ Опыт: {house_xp}\n"
-        text += f"💰 Доход: {house['passive_income']} 🍇/час\n"
+        text += f"💰 Доход: {house['passive_income']}/час\n"
         text += f"🍇 Баланс: {balance}\n\n"
         
         if pending_income > 0:
-            text += f"🎁 Доступно: {pending_income} 🍇\n\n"
+            text += f"🎁 Доступно: {pending_income}\n\n"
         
         if next_house:
-            text += f"**Следующий:**\n{next_house['name']} — {next_house['price']} 🍇"
+            text += f"Следующий:\n{next_house['name']} — {next_house['price']}"
         
         await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"❌ Ошибка в /дом: {e}")
+        logging.error(f"Ошибка в /дом: {e}")
         await message.answer("❌ Ошибка дома.")
+
+@dp.message(Command("подарки"))
+async def cmd_gifts(message: Message):
+    try:
+        user = await get_user(message.from_user.id)
+        balance = user.get('balance', 0) if user else 0
+        
+        keyboard = InlineKeyboardBuilder()
+        for item_id, item in GIFT_CATALOG.items():
+            keyboard.button(text=f"{item['name']} — {item['price']}", callback_data=f"gift_{item_id}")
+        keyboard.adjust(2)
+        
+        await message.answer(f"🎁 Магазин подарков\n\nБаланс: {balance}\n\nВыберите подарок:", reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка в /подарки: {e}")
+
+@dp.callback_query(lambda c: c.data.startswith("gift_"))
+async def callback_gift_buy(callback: CallbackQuery):
+    try:
+        user_id = callback.from_user.id
+        item_id = callback.data.replace("gift_", "")
+        
+        item = GIFT_CATALOG.get(item_id)
+        if not item:
+            await callback.answer("❌ Не найден", show_alert=True)
+            return
+        
+        user = await get_user(user_id)
+        if user['balance'] < item['price']:
+            await callback.answer("❌ Недостаточно", show_alert=True)
+            return
+        
+        await update_balance(user_id, -item['price'])
+        await add_to_inventory(user_id, item_id)
+        
+        await callback.message.answer(f"✅ {item['name']} куплен!\n/инвентарь — посмотреть")
+        await callback.answer()
+    except Exception as e:
+        logging.error(f"Ошибка в callback_gift_buy: {e}")
+
+@dp.message(Command("инвентарь"))
+async def cmd_inventory(message: Message):
+    try:
+        user = await get_user(message.from_user.id)
+        inventory = user.get('inventory', []) if user else []
+        
+        if not inventory:
+            await message.answer("📦 Инвентарь пуст\n\n/подарки — купить подарки")
+            return
+        
+        text = "📦 Ваш инвентарь\n\n"
+        
+        item_counts = {}
+        for item in inventory:
+            item_id = item.get('item_id')
+            if item_id in item_counts:
+                item_counts[item_id] += 1
+            else:
+                item_counts[item_id] = 1
+        
+        for item_id, count in item_counts.items():
+            item = GIFT_CATALOG.get(item_id)
+            if item:
+                text += f"{item['name']} x{count}\n"
+        
+        await message.answer(text)
+    except Exception as e:
+        logging.error(f"Ошибка в /инвентарь: {e}")
 
 @dp.message(Command("бустеры"))
 async def cmd_boosters(message: Message):
@@ -615,12 +714,12 @@ async def cmd_boosters(message: Message):
         
         keyboard = InlineKeyboardBuilder()
         for booster_id, booster in BOOSTERS.items():
-            keyboard.button(text=f"{booster['name']} — {booster['price']} 🍇", callback_data=f"buy_booster_{booster_id}")
+            keyboard.button(text=f"{booster['name']} — {booster['price']}", callback_data=f"buy_booster_{booster_id}")
         keyboard.adjust(2)
         
-        await message.answer(f"🚀 **Бустеры**\n\nБаланс: {balance} 🍇", reply_markup=keyboard.as_markup())
+        await message.answer(f"🚀 Бустеры\n\nБаланс: {balance}", reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"❌ Ошибка в /бустеры: {e}")
+        logging.error(f"Ошибка в /бустеры: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("buy_booster_"))
 async def callback_buy_booster(callback: CallbackQuery):
@@ -635,7 +734,7 @@ async def callback_buy_booster(callback: CallbackQuery):
         
         user = await get_user(user_id)
         if user['balance'] < booster['price']:
-            await callback.answer("❌ Недостаточно 🍇", show_alert=True)
+            await callback.answer("❌ Недостаточно", show_alert=True)
             return
         
         await update_balance(user_id, -booster['price'])
@@ -644,7 +743,7 @@ async def callback_buy_booster(callback: CallbackQuery):
         await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
         await callback.answer()
     except Exception as e:
-        logging.error(f"❌ Ошибка в callback_buy_booster: {e}")
+        logging.error(f"Ошибка в callback_buy_booster: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("house_"))
 async def callback_house(callback: CallbackQuery):
@@ -668,7 +767,7 @@ async def callback_house(callback: CallbackQuery):
                 await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
         elif action == "stats":
             user = await get_user(user_id)
-            text = f"📊 **Статистика**\n\n"
+            text = f"📊 Статистика\n\n"
             text += f"Дом: ур. {user.get('house_level', 1)}\n"
             text += f"Опыт: {user.get('house_xp', 0)}\n"
             text += f"Ферма: ур. {user.get('farm_level', 1)}\n"
@@ -677,7 +776,7 @@ async def callback_house(callback: CallbackQuery):
         
         await callback.answer()
     except Exception as e:
-        logging.error(f"❌ Ошибка в callback_house: {e}")
+        logging.error(f"Ошибка в callback_house: {e}")
 
 @dp.callback_query(lambda c: c.data.startswith("farm_"))
 async def callback_farm(callback: CallbackQuery):
@@ -688,7 +787,7 @@ async def callback_farm(callback: CallbackQuery):
         if action == "plant":
             keyboard = InlineKeyboardBuilder()
             for crop_id, crop in CROPS.items():
-                keyboard.button(text=f"{crop['name']} — {crop['cost']} 🍇", callback_data=f"plant_select_{crop_id}")
+                keyboard.button(text=f"{crop['name']} — {crop['cost']}", callback_data=f"plant_select_{crop_id}")
             keyboard.adjust(2)
             await callback.message.answer("🌱 Выберите культуру:", reply_markup=keyboard.as_markup())
         elif action == "upgrade":
@@ -696,7 +795,7 @@ async def callback_farm(callback: CallbackQuery):
             await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
         elif action == "stats":
             user = await get_user(user_id)
-            text = f"📊 **Ферма**\n\n"
+            text = f"📊 Ферма\n\n"
             text += f"Уровень: {user.get('farm_level', 1)}\n"
             text += f"Опыт: {user.get('farm_xp', 0)}\n"
             text += f"Грядок: {len(user.get('farm_plots', []))}"
@@ -707,7 +806,7 @@ async def callback_farm(callback: CallbackQuery):
         
         await callback.answer()
     except Exception as e:
-        logging.error(f"❌ Ошибка в callback_farm: {e}")
+        logging.error(f"Ошибка в callback_farm: {e}")
 
 @dp.message(Command("посадить"))
 async def cmd_plant(message: Message):
@@ -727,7 +826,7 @@ async def cmd_plant(message: Message):
         success, msg = await plant_crop(message.from_user.id, plot_index, crop_id)
         await message.answer(f"{'✅' if success else '❌'} {msg}")
     except Exception as e:
-        logging.error(f"❌ Ошибка в /посадить: {e}")
+        logging.error(f"Ошибка в /посадить: {e}")
         await message.answer("❌ Ошибка.")
 
 @dp.message(Command("собрать"))
@@ -742,7 +841,7 @@ async def cmd_harvest(message: Message):
         success, msg = await harvest_crop(message.from_user.id, plot_index)
         await message.answer(f"{'✅' if success else '⏳'} {msg}")
     except Exception as e:
-        logging.error(f"❌ Ошибка в /собрать: {e}")
+        logging.error(f"Ошибка в /собрать: {e}")
         await message.answer("❌ Ошибка.")
 
 @dp.message(Command("баланс"))
@@ -753,18 +852,67 @@ async def cmd_balance(message: Message):
             await message.answer("❌ Сначала /start")
             return
         
-        text = f"💰 **Баланс**\n\n"
+        text = f"💰 Баланс\n\n"
         text += f"🍇 Виноград: {user.get('balance', 0)}\n"
         text += f"🌾 Ферма: ур. {user.get('farm_level', 1)}\n"
         text += f"🏠 Дом: ур. {user.get('house_level', 1)}"
         await message.answer(text)
     except Exception as e:
-        logging.error(f"❌ Ошибка в /баланс: {e}")
+        logging.error(f"Ошибка в /баланс: {e}")
         await message.answer("❌ Ошибка.")
+
+@dp.message(Command("магазин"))
+async def cmd_shop(message: Message):
+    try:
+        user = await get_user(message.from_user.id)
+        balance = user.get('balance', 0) if user else 0
+        
+        keyboard = InlineKeyboardBuilder()
+        for item_id, item in SHOP_ITEMS.items():
+            keyboard.button(text=f"{item['name']} — {item['price']}", callback_data=f"buy_{item_id}")
+        keyboard.adjust(2)
+        
+        await message.answer(f"🏪 Магазин\n\nБаланс: {balance}\n\n🔧 Улучшения:\n🔄 Авто-сбор — 500\n📈 x2 — 1000\n⏰ Бонус 2ч — 300\n\n🎨 Скины:\n🍷 Вино — 200\n💎 Алмаз — 500\n\n💚 Сброс — 100", reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка в /магазин: {e}")
+
+@dp.callback_query(lambda c: c.data.startswith("buy_"))
+async def callback_buy(callback: CallbackQuery):
+    try:
+        user_id = callback.from_user.id
+        item_id = callback.data.replace("buy_", "")
+        
+        if item_id not in SHOP_ITEMS:
+            await callback.answer("❌ Не найдено", show_alert=True)
+            return
+        
+        item = SHOP_ITEMS[item_id]
+        user = await get_user(user_id)
+        
+        if user['balance'] < item['price']:
+            await callback.answer("❌ Недостаточно", show_alert=True)
+            return
+        
+        if item['type'] == "upgrade":
+            if item_id == "auto_collect" and user['auto_collect']:
+                await callback.answer("❌ Уже есть", show_alert=True)
+                return
+            if item_id == "double_grapes" and user['double_grapes']:
+                await callback.answer("❌ Уже есть", show_alert=True)
+                return
+            if item_id == "bonus_2h" and user['bonus_2h']:
+                await callback.answer("❌ Уже есть", show_alert=True)
+                return
+        
+        await update_balance(user_id, -item['price'])
+        await buy_item(user_id, item_id)
+        await callback.answer(f"✅ {item['name']} куплен!")
+    except Exception as e:
+        logging.error(f"Ошибка в callback_buy: {e}")
 
 @dp.message(Command("помощь"))
 async def cmd_help(message: Message):
-    await message.answer("📚 **Справка**\n\n🌾 /ферма — ферма\n🏠 /дом — дом\n🚀 /бустеры — бустеры\n🌱 /посадить [грядка] [культура]\n🚜 /собрать [грядка]\n💰 /баланс — баланс\n❓ /помощь — справка")
+    await message.answer("📚 Справка\n\n🌾 /ферма — ферма\n🏠 /дом — дом\n🎁 /подарки — подарки\n🚀 /бустеры — бустеры\n🌱 /посадить [грядка] [культура]\n🚜 /собрать [грядка]\n💰 /баланс — баланс\n❓ /помощь — справка")
 
 @dp.message(Command("топ"))
 async def cmd_top(message: Message):
@@ -774,7 +922,7 @@ async def cmd_top(message: Message):
             await message.answer("📊 Пока нет игроков")
             return
         
-        text = "🏆 **Топ**\n\n"
+        text = "🏆 Топ\n\n"
         for i, row in enumerate(top, 1):
             medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
             try:
@@ -782,27 +930,27 @@ async def cmd_top(message: Message):
                 name = u.first_name[:20]
             except:
                 name = f"User{row['user_id']}"
-            text += f"{medal} {name} — {row['balance']} 🍇\n"
+            text += f"{medal} {name} — {row['balance']}\n"
         await message.answer(text)
     except Exception as e:
-        logging.error(f"❌ Ошибка в /топ: {e}")
+        logging.error(f"Ошибка в /топ: {e}")
 
 @dp.message(Command("статистика"))
 async def cmd_stats(message: Message):
     try:
         total = await get_total_users()
         grapes = await get_total_grapes()
-        await message.answer(f"📊 **Статистика**\n\n👥 Игроков: {total}\n🍇 Всего: {grapes or 0}")
+        await message.answer(f"📊 Статистика\n\n👥 Игроков: {total}\n🍇 Всего: {grapes or 0}")
     except Exception as e:
-        logging.error(f"❌ Ошибка в /статистика: {e}")
+        logging.error(f"Ошибка в /статистика: {e}")
 
 async def main():
     try:
         await init_db()
-        logging.info("✅ Бот запущен!")
+        logging.info("Бот запущен!")
         await dp.start_polling(bot)
     except Exception as e:
-        logging.error(f"❌ Критическая ошибка: {e}")
+        logging.error(f"Критическая ошибка: {e}")
         raise
 
 if __name__ == "__main__":
