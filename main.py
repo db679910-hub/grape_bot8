@@ -546,8 +546,61 @@ async def cmd_start(message: Message):
         
         user = await add_user(user_id, ref_code, username)
         
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🌾 Ферма", callback_data="menu_farm")
+        keyboard.button(text="🏠 Дом", callback_data="menu_house")
+        keyboard.button(text="🎁 Подарки", callback_data="menu_gifts")
+        keyboard.button(text="🚀 Бустеры", callback_data="menu_boosters")
+        keyboard.button(text="💰 Баланс", callback_data="menu_balance")
+        keyboard.button(text="🏪 Магазин", callback_data="menu_shop")
+        keyboard.button(text="📊 Топ", callback_data="menu_top")
+        keyboard.button(text="❓ Помощь", callback_data="menu_help")
+        keyboard.adjust(2)
+        
         if user:
-            await message.answer(f"🍇 Привет, {message.from_user.first_name}!\n\n📋 Команды:\n/ферма — ферма\n/дом — дом\n/подарки — подарки\n/инвентарь — инвентарь\n/бустеры — бустеры\n/баланс — баланс\n/помощь — справка")
+            text = f"""
+@dp.message(CommandStart())
+async def cmd_start(message: Message):
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.username
+        args = message.text.split()
+        ref_code = args[1] if len(args) > 1 else None
+        
+        user = await add_user(user_id, ref_code, username)
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🌾 Ферма", callback_data="menu_farm")
+        keyboard.button(text="🏠 Дом", callback_data="menu_house")
+        keyboard.button(text="🎁 Подарки", callback_data="menu_gifts")
+        keyboard.button(text="🚀 Бустеры", callback_data="menu_boosters")
+        keyboard.button(text="💰 Баланс", callback_data="menu_balance")
+        keyboard.button(text="🏪 Магазин", callback_data="menu_shop")
+        keyboard.button(text="📊 Топ", callback_data="menu_top")
+        keyboard.button(text="❓ Помощь", callback_data="menu_help")
+        keyboard.adjust(2)
+        
+        if user:
+            text = f"""
+🍇 **ДОБРО ПОЖАЛОВАТЬ!** 🍇
+
+Привет, {message.from_user.first_name}!
+
+🎮 Это бот-ферма! Выращивай виноград, строй дома и становись богатым!
+
+📋 **Основные команды:**
+/ферма — управлять фермой
+/дом — управлять домом
+/подарки — магазин подарков
+/бустеры — ускорения
+/баланс — проверить баланс
+/магазин — улучшения
+/топ — рейтинг игроков
+/помощь — справка
+
+🎯 **Совет:** Начни с посадки винограда!
+"""
+            await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
         else:
             await message.answer("❌ Ошибка регистрации")
     except Exception as e:
