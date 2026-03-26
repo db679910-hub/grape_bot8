@@ -771,7 +771,6 @@ async def cmd_gifts(message: Message):
 @dp.callback_query(lambda c: c.data.startswith("gift_"))
 async def callback_gift_buy(callback: CallbackQuery):
     try:
-        # СНАЧАЛА отвечаем на callback!
         await callback.answer()
         
         user_id = callback.from_user.id
@@ -791,10 +790,22 @@ async def callback_gift_buy(callback: CallbackQuery):
             await callback.message.answer("❌ Недостаточно винограда 🍇")
             return
         
+        # Списываем баланс
         await update_balance(user_id, -item['price'])
-        await add_to_inventory(user_id, item_id)
         
-        await callback.message.answer(f"✅ {item['name']} куплен!\n\n/инвентарь - посмотреть подарки")
+        # Добавляем в инвентарь
+        success = await add_to_inventory(user_id, item_id)
+        
+        if success:
+            await callback.message.answer(
+                f"✅ {item['name']} куплен!\n\n"
+                f"Списано: {item['price']} 🍇\n"
+                f"/инвентарь - посмотреть подарки"
+            )
+        else:
+            # Если не удалось добавить в инвентарь - возвращаем деньги
+            await update_balance(user_id, item['price'])
+            await callback.message.answer("❌ Ошибка добавления в инвентарь! Деньги возвращены.")
         
     except Exception as e:
         logging.error(f"Ошибка callback_gift_buy: {e}")
