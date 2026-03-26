@@ -1185,25 +1185,25 @@ async def cmd_transfer_gift(message: Message):
         logging.error(f"Ошибка cmd_transfer_gift: {e}")
         await message.answer("❌ Ошибка передачи подарка")
         
-     @dp.message(Command("помощь"))
+@dp.message(Command("помощь"))
 async def cmd_help(message: Message):
-    text = "📚 **СПРАВКА** 📚\n\n"
-    text += "🌾 **Ферма**:\n"
+    text = "📚 СПРАВКА 📚\n\n"
+    text += "🌾 Ферма:\n"
     text += "/ферма - ферма\n"
     text += "/посадить [грядка] [культура]\n"
     text += "/собрать [грядка]\n\n"
-    text += "🏠 **Дом**:\n"
+    text += "🏠 Дом:\n"
     text += "/дом - дом\n"
     text += "/бустеры - бустеры\n\n"
-    text += "🎁 **Подарки**:\n"
+    text += "🎁 Подарки:\n"
     text += "/подарки - магазин подарков\n"
     text += "/инвентарь - мои подарки\n"
     text += "/передать @user предмет\n\n"
-    text += "🍇 **Сбор**:\n"
+    text += "🍇 Сбор:\n"
     text += "/баланс - проверить\n\n"
-    text += "🏪 **Магазин**:\n"
+    text += "🏪 Магазин:\n"
     text += "/магазин - улучшения\n\n"
-    text += "👥 **Другое**:\n"
+    text += "👥 Другое:\n"
     text += "/топ - рейтинг\n"
     text += "/помощь - справка"
     await message.answer(text)
