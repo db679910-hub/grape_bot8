@@ -995,7 +995,7 @@ async def cmd_farm(message: Message):
         
 @dp.message(Command("сбор"))
 async def cmd_collect(message: Message):
-        try:
+    try:
         user_id = message.from_user.id
         username = message.from_user.username
         await add_user(user_id, username=username)
