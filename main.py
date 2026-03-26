@@ -1046,6 +1046,167 @@ async def cmd_plant(message: Message):
     except Exception as e:
         logging.error(f"Ошибка cmd_plant: {e}")
         await message.answer("❌ Ошибка.")
+        
+@dp.message(Command("передать"))
+async def cmd_transfer_gift(message: Message):
+    try:
+        args = message.text.split()
+        
+        if len(args) < 3:
+            await message.answer(
+                "🎁 **Как передать подарок**\n\n"
+                "Использование:\n"
+                "/передать @username предмет\n\n"
+                "Примеры:\n"
+                "/передать @friend chocolate\n"
+                "/передать @friend rose\n\n"
+                "Доступные предметы:\n" +
+                "\n".join([f"{gid} - {g['name']}" for gid, g in GIFT_CATALOG.items()])
+            )
+            return
+        
+        # Получаем username получателя
+        target_username = args[1].replace('@', '')
+        item_id = args[2]
+        
+        # Проверяем, существует ли предмет
+        item = GIFT_CATALOG.get(item_id)
+        if not item:
+            await message.answer(
+                f"❌ Предмет не найден!\n\n"
+                f"Доступные предметы:\n" +
+                "\n".join([f"{gid} - {g['name']}" for gid, g in GIFT_CATALOG.items()])
+            )
+            return
+        
+        # Получаем отправителя
+        sender_id = message.from_user.id
+        sender = await get_user(sender_id)
+        
+        if not sender:
+            await message.answer("❌ Ошибка пользователя")
+            return
+        
+        # Проверяем инвентарь отправителя
+        sender_inventory = sender.get('inventory', [])
+        
+        # Ищем предмет в инвентаре
+        item_found = False
+        item_index = -1
+        
+        for i, inv_item in enumerate(sender_inventory):
+            if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
+                item_found = True
+                item_index = i
+                break
+        
+        if not item_found:
+            await message.answer(f"❌ У вас нет предмета \"{item['name']}\"!")
+            return
+        
+        # Получаем получателя
+        recipient = await get_user_by_username(target_username)
+        
+        if not recipient:
+            await message.answer(f"❌ Пользователь @{target_username} не найден!\n\nОн должен сначала запустить бота /start")
+            return
+        
+        if recipient['user_id'] == sender_id:
+            await message.answer("❌ Нельзя передать подарок самому себе!")
+            return
+        
+        # Передаём подарок
+        async with pool.acquire() as conn:
+            # Убираем из инвентаря отправителя
+            if sender_inventory[item_index].get('quantity', 1) > 1:
+                sender_inventory[item_index]['quantity'] -= 1
+            else:
+                sender_inventory.pop(item_index)
+            
+            await conn.execute(
+                "UPDATE users SET inventory = $1 WHERE user_id = $2",
+                json.dumps(sender_inventory),
+                sender_id
+            )
+            
+            # Добавляем в инвентарь получателя
+            recipient_inventory = recipient.get('inventory', [])
+            
+            # Проверяем, есть ли уже такой предмет у получателя
+            found = False
+            for inv_item in recipient_inventory:
+                if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
+                    inv_item['quantity'] = inv_item.get('quantity', 1) + 1
+                    found = True
+                    break
+            
+            if not found:
+                recipient_inventory.append({"item_id": item_id, "quantity": 1})
+            
+            await conn.execute(
+                "UPDATE users SET inventory = $1 WHERE user_id = $2",
+                json.dumps(recipient_inventory),
+                recipient['user_id']
+            )
+            
+            # Увеличиваем счётчики
+            await conn.execute(
+                "UPDATE users SET gifts_sent = gifts_sent + 1 WHERE user_id = $1",
+                sender_id
+            )
+            await conn.execute(
+                "UPDATE users SET gifts_received = gifts_received + 1 WHERE user_id = $1",
+                recipient['user_id']
+            )
+        
+        # Отправляем уведомления
+        sender_name = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
+        
+        await message.answer(
+            f"✅ **Подарок передан!**\n\n"
+            f"🎁 Предмет: {item['name']}\n"
+            f"👤 Получатель: @{target_username}\n\n"
+            f"Подарок успешно доставлен! 🎉"
+        )
+        
+        # Уведомляем получателя
+        try:
+            await bot.send_message(
+                recipient['user_id'],
+                f"🎁 **Вам передали подарок!**\n\n"
+                f"📦 Предмет: {item['name']}\n"
+                f"👤 От: {sender_name}\n\n"
+                f"/инвентарь - посмотреть подарки"
+            )
+        except:
+            pass  # Если бот не может отправить сообщение получателю
+        
+    except Exception as e:
+        logging.error(f"Ошибка cmd_transfer_gift: {e}")
+        await message.answer("❌ Ошибка передачи подарка")
+        
+     @dp.message(Command("помощь"))
+async def cmd_help(message: Message):
+    text = "📚 **СПРАВКА** 📚\n\n"
+    text += "🌾 **Ферма**:\n"
+    text += "/ферма - ферма\n"
+    text += "/посадить [грядка] [культура]\n"
+    text += "/собрать [грядка]\n\n"
+    text += "🏠 **Дом**:\n"
+    text += "/дом - дом\n"
+    text += "/бустеры - бустеры\n\n"
+    text += "🎁 **Подарки**:\n"
+    text += "/подарки - магазин подарков\n"
+    text += "/инвентарь - мои подарки\n"
+    text += "/передать @user предмет\n\n"
+    text += "🍇 **Сбор**:\n"
+    text += "/баланс - проверить\n\n"
+    text += "🏪 **Магазин**:\n"
+    text += "/магазин - улучшения\n\n"
+    text += "👥 **Другое**:\n"
+    text += "/топ - рейтинг\n"
+    text += "/помощь - справка"
+    await message.answer(text)
 
 @dp.message(Command("собрать"))
 async def cmd_harvest(message: Message):
