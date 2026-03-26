@@ -993,9 +993,9 @@ async def cmd_farm(message: Message):
         logging.error(f"Ошибка cmd_farm: {e}")
         await message.answer("❌ Ошибка фермы.")
         
-        @dp.message(Command("сбор"))
+@dp.message(Command("сбор"))
 async def cmd_collect(message: Message):
-    try:
+        try:
         user_id = message.from_user.id
         username = message.from_user.username
         await add_user(user_id, username=username)
@@ -1014,7 +1014,6 @@ async def cmd_collect(message: Message):
         last_time = user.get('last_collect', 0)
         cooldown = 0 if auto else COOLDOWN_SECONDS
         
-        # Проверяем кулдаун
         if now - last_time < cooldown:
             remaining = cooldown - (now - last_time)
             hours = remaining // 3600
@@ -1037,7 +1036,6 @@ async def cmd_collect(message: Message):
             await message.answer(text)
             return
         
-        # Собираем урожай
         reward = GRAPE_REWARD * (2 if double else 1)
         await update_balance(user_id, reward)
         await update_collect_time(user_id, now)
@@ -1045,13 +1043,11 @@ async def cmd_collect(message: Message):
         new_user = await get_user(user_id)
         new_balance = new_user.get('balance', 0) if new_user else reward
         
-        # Пассивный доход для пригласившего
         if user.get('invited_by'):
             passive = int(reward * REFERRAL_PERCENT / 100)
             if passive > 0:
                 await add_passive_income(user['invited_by'], passive)
         
-        # Формируем красивое сообщение
         text = (
             f"{emoji} **Сбор винограда!** {emoji}\n\n"
             f"🍇 Собрано: {reward:,}\n"
