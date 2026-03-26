@@ -6,7 +6,7 @@ import asyncpg
 import random
 import string
 import json
-from aiogram import F Bot, Dispatcher
+from aiogram import Bot, Dispatcher F
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
