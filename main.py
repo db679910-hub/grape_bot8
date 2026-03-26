@@ -976,8 +976,57 @@ async def callback_gift_buy(callback: CallbackQuery):
 @dp.message(Command("инвентарь"))
 async def cmd_inventory(message: Message):
     try:
+        args = message.text.split()
         user_id = message.from_user.id
-        logging.info(f"Пользователь {user_id} запросил инвентарь")
+        
+        # Если указан @username - смотрим чужой инвентарь
+        if len(args) > 1:
+            target_username = args[1].replace('@', '')
+            
+            # Ищем пользователя
+            target_user = await get_user_by_username(target_username)
+            
+            if not target_user:
+                await message.answer(f"❌ Пользователь @{target_username} не найден!")
+                return
+            
+            # Показываем публичный инвентарь (без точных количеств для редких предметов)
+            inventory = target_user.get('inventory', [])
+            
+            if not inventory or len(inventory) == 0:
+                await message.answer(f"📦 Инвентарь @{target_username} пуст")
+                return
+            
+            text = f"📦 **Инвентарь @{target_username}** 📦\n\n"
+            
+            item_counts = {}
+            for item in inventory:
+                if isinstance(item, dict):
+                    item_id = item.get('item_id')
+                    quantity = item.get('quantity', 1)
+                    if item_id:
+                        item_counts[item_id] = item_counts.get(item_id, 0) + quantity
+            
+            if not item_counts:
+                await message.answer("📦 Инвентарь пуст")
+                return
+            
+            for item_id, count in item_counts.items():
+                item = GIFT_CATALOG.get(item_id)
+                if item:
+                    # Показываем только наличие для редких предметов (баланс)
+                    if item.get('rarity') in ['epic', 'legendary']:
+                        text += f"{item['name']} ✅\n"
+                    else:
+                        text += f"{item['name']} x{min(count, 99)}\n"  # Ограничиваем показ количества
+                else:
+                    text += f"❓ Неизвестный предмет ✅\n"
+            
+            await message.answer(text)
+            return
+        
+        # Если без @username - показываем свой инвентарь (полная информация)
+        logging.info(f"Пользователь {user_id} запросил свой инвентарь")
         
         async with pool.acquire() as conn:
             row = await conn.fetchrow("SELECT inventory FROM users WHERE user_id = $1", user_id)
@@ -994,7 +1043,7 @@ async def cmd_inventory(message: Message):
             logging.info(f"Инвентарь из БД: {inventory}")
             
             if not inventory or len(inventory) == 0:
-                await message.answer("📦 Инвентарь пуст\n\n/подарки - купить подарки")
+                await message.answer("📦 Ваш инвентарь пуст\n\n/подарки - купить подарки")
                 return
             
             text = "📦 **ВАШ ИНВЕНТАРЬ** 📦\n\n"
