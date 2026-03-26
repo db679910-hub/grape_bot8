@@ -3,8 +3,10 @@ import logging
 import time
 import os
 import asyncpg
+import random
+import string
 from aiogram import Bot, Dispatcher
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -14,49 +16,23 @@ GRAPE_REWARD = 5
 COOLDOWN_SECONDS = 60
 BONUS_HOURS = 4
 BONUS_AMOUNT = 50
+REFERRAL_BONUS = 100  # Бонус за приглашённого друга
+REFERRAL_PERCENT = 10  # % от сбора друга (пассивный доход)
 
 logging.basicConfig(level=logging.INFO)
 pool = None
 
-# 🏪 ТОВАРЫ МАГАЗИНА
 SHOP_ITEMS = {
-    "auto_collect": {
-        "name": "🔄 Авто-сбор",
-        "price": 500,
-        "desc": "Сбор без кулдауна (навсегда)",
-        "type": "upgrade"
-    },
-    "double_grapes": {
-        "name": "📈 Умножение x2",
-        "price": 1000,
-        "desc": "Сбор x2 винограда (навсегда)",
-        "type": "upgrade"
-    },
-    "bonus_2h": {
-        "name": "⏰ Бонус 2ч",
-        "price": 300,
-        "desc": "Бонус каждые 2 часа (навсегда)",
-        "type": "upgrade"
-    },
-    "skin_wine": {
-        "name": "🍷 Скин Вино",
-        "price": 200,
-        "desc": "Меняет 🍇 на 🍷",
-        "type": "skin"
-    },
-    "skin_diamond": {
-        "name": "💎 Скин Алмаз",
-        "price": 500,
-        "desc": "Меняет 🍇 на ",
-        "type": "skin"
-    },
-    "restore": {
-        "name": "💚 Восстановление",
-        "price": 100,
-        "desc": "Сброс кулдауна сбора",
-        "type": "consumable"
-    }
+    "auto_collect": {"name": "🔄 Авто-сбор", "price": 500, "desc": "Сбор без кулдауна", "type": "upgrade"},
+    "double_grapes": {"name": "📈 Умножение x2", "price": 1000, "desc": "Сбор x2 винограда", "type": "upgrade"},
+    "bonus_2h": {"name": "⏰ Бонус 2ч", "price": 300, "desc": "Бонус каждые 2 часа", "type": "upgrade"},
+    "skin_wine": {"name": "🍷 Скин Вино", "price": 200, "desc": "Меняет 🍇 на 🍷", "type": "skin"},
+    "skin_diamond": {"name": "💎 Скин Алмаз", "price": 500, "desc": "Меняет 🍇 на ", "type": "skin"},
+    "restore": {"name": "💚 Восстановление", "price": 100, "desc": "Сброс кулдауна", "type": "consumable"}
 }
+
+def generate_ref_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 async def init_db():
     global pool
@@ -71,14 +47,19 @@ async def init_db():
                 auto_collect BOOLEAN DEFAULT FALSE,
                 double_grapes BOOLEAN DEFAULT FALSE,
                 bonus_2h BOOLEAN DEFAULT FALSE,
-                skin VARCHAR(20) DEFAULT 'grape'
+                skin VARCHAR(20) DEFAULT 'grape',
+                ref_code VARCHAR(20) UNIQUE,
+                invited_by BIGINT,
+                total_invited INTEGER DEFAULT 0,
+                passive_income INTEGER DEFAULT 0
             )
         """)
+        # Добавляем колонки если их нет
         try:
-            await conn.execute("ALTER TABLE users ADD COLUMN auto_collect BOOLEAN DEFAULT FALSE")
-            await conn.execute("ALTER TABLE users ADD COLUMN double_grapes BOOLEAN DEFAULT FALSE")
-            await conn.execute("ALTER TABLE users ADD COLUMN bonus_2h BOOLEAN DEFAULT FALSE")
-            await conn.execute("ALTER TABLE users ADD COLUMN skin VARCHAR(20) DEFAULT 'grape')")
+            await conn.execute("ALTER TABLE users ADD COLUMN ref_code VARCHAR(20)")
+            await conn.execute("ALTER TABLE users ADD COLUMN invited_by BIGINT")
+            await conn.execute("ALTER TABLE users ADD COLUMN total_invited INTEGER DEFAULT 0")
+            await conn.execute("ALTER TABLE users ADD COLUMN passive_income INTEGER DEFAULT 0")
         except:
             pass
     logging.info("✅ PostgreSQL подключена!")
@@ -88,12 +69,41 @@ async def get_user(user_id):
         row = await conn.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
         return row if row else None
 
-async def add_user(user_id):
+async def add_user(user_id, ref_code=None):
     async with pool.acquire() as conn:
+        # Проверяем, есть ли уже пользователь
+        existing = await conn.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
+        if existing:
+            return existing
+        
+        # Генерируем реф-код для нового пользователя
+        my_ref_code = generate_ref_code()
+        
+        # Находим кто пригласил
+        inviter_id = None
+        if ref_code:
+            inviter = await conn.fetchrow("SELECT user_id FROM users WHERE ref_code = $1", ref_code)
+            if inviter:
+                inviter_id = inviter['user_id']
+        
         await conn.execute(
-            "INSERT INTO users (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
-            user_id
+            """INSERT INTO users (user_id, ref_code, invited_by) 
+               VALUES ($1, $2, $3) ON CONFLICT (user_id) DO NOTHING""",
+            user_id, my_ref_code, inviter_id
         )
+        
+        # Если есть пригласивший — начисляем бонусы
+        if inviter_id:
+            await conn.execute(
+                "UPDATE users SET balance = balance + $1, total_invited = total_invited + 1 WHERE user_id = $2",
+                REFERRAL_BONUS, inviter_id
+            )
+            await conn.execute(
+                "UPDATE users SET balance = balance + $1 WHERE user_id = $2",
+                REFERRAL_BONUS, user_id
+            )
+        
+        return await get_user(user_id)
 
 async def update_balance(user_id, amount):
     async with pool.acquire() as conn:
@@ -116,46 +126,33 @@ async def update_bonus_time(user_id, timestamp):
             timestamp, user_id
         )
 
+async def add_passive_income(user_id, amount):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE users SET balance = balance + $1, passive_income = passive_income + $1 WHERE user_id = $2",
+            amount, user_id
+        )
+
 async def buy_item(user_id, item_id):
     async with pool.acquire() as conn:
         if item_id == "restore":
-            await conn.execute(
-                "UPDATE users SET last_collect = 0 WHERE user_id = $1",
-                user_id
-            )
+            await conn.execute("UPDATE users SET last_collect = 0 WHERE user_id = $1", user_id)
         elif item_id == "auto_collect":
-            await conn.execute(
-                "UPDATE users SET auto_collect = TRUE WHERE user_id = $1",
-                user_id
-            )
+            await conn.execute("UPDATE users SET auto_collect = TRUE WHERE user_id = $1", user_id)
         elif item_id == "double_grapes":
-            await conn.execute(
-                "UPDATE users SET double_grapes = TRUE WHERE user_id = $1",
-                user_id
-            )
+            await conn.execute("UPDATE users SET double_grapes = TRUE WHERE user_id = $1", user_id)
         elif item_id == "bonus_2h":
-            await conn.execute(
-                "UPDATE users SET bonus_2h = TRUE WHERE user_id = $1",
-                user_id
-            )
+            await conn.execute("UPDATE users SET bonus_2h = TRUE WHERE user_id = $1", user_id)
         elif item_id in ["skin_wine", "skin_diamond"]:
             skin = "wine" if item_id == "skin_wine" else "diamond"
-            await conn.execute(
-                "UPDATE users SET skin = $1 WHERE user_id = $2",
-                skin, user_id
-            )
+            await conn.execute("UPDATE users SET skin = $1 WHERE user_id = $2", skin, user_id)
 
 async def get_skin_emoji(skin):
-    skins = {"grape": "🍇", "wine": "🍷", "diamond": "💎"}
-    return skins.get(skin, "🍇")
+    return {"grape": "🍇", "wine": "🍷", "diamond": "💎"}.get(skin, "🍇")
 
 async def get_top_users(limit=10):
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT $1",
-            limit
-        )
-        return rows
+        return await conn.fetch("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT $1", limit)
 
 async def get_total_users():
     async with pool.acquire() as conn:
@@ -170,20 +167,36 @@ async def get_total_grapes():
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-@dp.message(Command("start"))
+@dp.message(CommandStart())
 async def cmd_start(message: Message):
-    await add_user(message.from_user.id)
-    await message.answer(
-        f"🍇 **Привет, {message.from_user.first_name}!**\n\n"
-        f"Собирай виноград и покупай улучшения!\n\n"
-        f"📋 **Команды:**\n"
-        f"/сбор — собрать виноград\n"
-        f"/баланс — проверить баланс\n"
-        f"/магазин — открыть магазин\n"
-        f"/бонус — бонус каждые 4 часа\n"
-        f"/топ — рейтинг\n"
-        f"/помощь — справка"
-    )
+    user_id = message.from_user.id
+    args = message.text.split()
+    ref_code = args[1] if len(args) > 1 else None
+    
+    user = await add_user(user_id, ref_code)
+    
+    # Проверяем, новый ли пользователь
+    is_new = user and user['invited_by'] and user['balance'] >= REFERRAL_BONUS
+    
+    if is_new:
+        await message.answer(
+            f"🎉 **Добро пожаловать!**\n\n"
+            f"Вам и вашему другу начислено по **{REFERRAL_BONUS} 🍇**!\n\n"
+            f"Собирай виноград и приглашай друзей!"
+        )
+    else:
+        await message.answer(
+            f"🍇 **С возвращением, {message.from_user.first_name}!**\n\n"
+            f"Собирай виноград и покупай улучшения!\n\n"
+            f"📋 **Команды:**\n"
+            f"/сбор — собрать виноград\n"
+            f"/баланс — проверить баланс\n"
+            f"/магазин — открыть магазин\n"
+            f"/пригласить — получить ссылку\n"
+            f"/бонус — бонус каждые 4 часа\n"
+            f"/топ — рейтинг\n"
+            f"/помощь — справка"
+        )
 
 @dp.message(Command("сбор"))
 async def cmd_collect(message: Message):
@@ -210,6 +223,12 @@ async def cmd_collect(message: Message):
     await update_collect_time(user_id, now)
     new_user = await get_user(user_id)
     
+    # Пассивный доход для пригласившего
+    if user and user['invited_by']:
+        passive = int(reward * REFERRAL_PERCENT / 100)
+        if passive > 0:
+            await add_passive_income(user['invited_by'], passive)
+    
     await message.answer(
         f"{emoji} +{reward} винограда!\n"
         f"Всего: {new_user['balance']}"
@@ -225,6 +244,8 @@ async def cmd_balance(message: Message):
     auto = "✅" if user and user['auto_collect'] else "❌"
     double = "✅" if user and user['double_grapes'] else "❌"
     bonus = "✅" if user and user['bonus_2h'] else "❌"
+    invited = user['total_invited'] if user else 0
+    passive = user['passive_income'] if user else 0
     
     await message.answer(
         f"💰 **Ваш баланс**\n\n"
@@ -232,7 +253,10 @@ async def cmd_balance(message: Message):
         f"🔄 Авто-сбор: {auto}\n"
         f"📈 Умножение x2: {double}\n"
         f"⏰ Бонус 2ч: {bonus}\n\n"
-        f"/магазин — купить улучшения"
+        f"👥 Приглашено: {invited}\n"
+        f"💵 Пассивный доход: {passive} 🍇\n\n"
+        f"/магазин — купить улучшения\n"
+        f"/пригласить — пригласить друга"
     )
 
 @dp.message(Command("магазин"))
@@ -242,25 +266,22 @@ async def cmd_shop(message: Message):
     
     keyboard = InlineKeyboardBuilder()
     for item_id, item in SHOP_ITEMS.items():
-        keyboard.button(
-            text=f"{item['name']} — {item['price']}🍇",
-            callback_data=f"buy_{item_id}"
-        )
+        keyboard.button(text=f"{item['name']} — {item['price']}🍇", callback_data=f"buy_{item_id}")
     keyboard.adjust(1)
     
     await message.answer(
-        f"🏪 **Магазин улучшений**\n\n"
+        f"🏪 **Магазин**\n\n"
         f"Ваш баланс: {balance} 🍇\n\n"
         f"**Улучшения:**\n"
-        f"🔄 Авто-сбор (500🍇) — без кулдауна\n"
-        f"📈 Умножение x2 (1000🍇) — сбор x2\n"
-        f"⏰ Бонус 2ч (300🍇) — бонус чаще\n\n"
+        f"🔄 Авто-сбор (500🍇)\n"
+        f"📈 Умножение x2 (1000🍇)\n"
+        f"⏰ Бонус 2ч (300🍇)\n\n"
         f"**Скины:**\n"
         f"🍷 Скин Вино (200🍇)\n"
         f"💎 Скин Алмаз (500🍇)\n\n"
         f"**Расходники:**\n"
-        f"💚 Восстановление (100🍇) — сброс кулдауна\n\n"
-        f"Нажмите на товар для покупки!",
+        f"💚 Восстановление (100🍇)\n\n"
+        f"Нажмите для покупки!",
         reply_markup=keyboard.as_markup()
     )
 
@@ -278,10 +299,9 @@ async def callback_buy(callback):
     balance = user['balance'] if user else 0
     
     if balance < item['price']:
-        await callback.answer(f"❌ Недостаточно винограда! Нужно {item['price']}", show_alert=True)
+        await callback.answer(f"❌ Недостаточно! Нужно {item['price']}", show_alert=True)
         return
     
-    # Проверка, куплено ли уже улучшение
     if item['type'] == "upgrade":
         if item_id == "auto_collect" and user and user['auto_collect']:
             await callback.answer("❌ Уже куплено!", show_alert=True)
@@ -297,11 +317,42 @@ async def callback_buy(callback):
     await buy_item(user_id, item_id)
     
     await callback.answer(f"✅ {item['name']} куплен!", show_alert=True)
-    await callback.message.answer(
-        f"✅ **Покупка успешна!**\n\n"
-        f"{item['name']}\n"
-        f"{item['desc']}\n\n"
-        f"Списано: {item['price']} 🍇"
+
+@dp.message(Command("пригласить"))
+async def cmd_invite(message: Message):
+    user_id = message.from_user.id
+    user = await get_user(user_id)
+    
+    if not user or not user['ref_code']:
+        # Генерируем код если нет
+        async with pool.acquire() as conn:
+            ref_code = generate_ref_code()
+            await conn.execute("UPDATE users SET ref_code = $1 WHERE user_id = $2", ref_code, user_id)
+            user = await get_user(user_id)
+    
+    ref_code = user['ref_code']
+    bot_username = (await bot.get_me()).username
+    invite_link = f"https://t.me/{bot_username}?start={ref_code}"
+    
+    invited = user['total_invited'] if user else 0
+    passive = user['passive_income'] if user else 0
+    
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text=" Копировать ссылку", url=invite_link)
+    keyboard.adjust(1)
+    
+    await message.answer(
+        f"👥 **Пригласи друзей!**\n\n"
+        f"Твоя реферальная ссылка:\n"
+        f"`{invite_link}`\n\n"
+        f"🎁 **Бонусы:**\n"
+        f"+{REFERRAL_BONUS} 🍇 за каждого друга\n"
+        f"+{REFERRAL_PERCENT}% от сбора друга (пассивно)\n\n"
+        f"📊 **Твоя статистика:**\n"
+        f"Приглашено: {invited}\n"
+        f"Пассивный доход: {passive} 🍇\n\n"
+        f"Отправь ссылку друзьям!",
+        reply_markup=keyboard.as_markup()
     )
 
 @dp.message(Command("бонус"))
@@ -318,20 +369,13 @@ async def cmd_bonus(message: Message):
         remaining = bonus_cooldown - (now - last_bonus)
         hours = remaining // 3600
         minutes = (remaining % 3600) // 60
-        await message.answer(
-            f"⏰ Бонус уже получен!\n\n"
-            f"Следующий через: {hours}ч {minutes}м"
-        )
+        await message.answer(f"⏰ Бонус уже получен!\nСледующий через: {hours}ч {minutes}м")
         return
     
     await update_balance(user_id, BONUS_AMOUNT)
     await update_bonus_time(user_id, now)
     new_user = await get_user(user_id)
-    await message.answer(
-        f"🎁 **Бонус получен!**\n\n"
-        f"+{BONUS_AMOUNT} винограда 🍇\n"
-        f"Всего: {new_user['balance']}"
-    )
+    await message.answer(f"🎁 **Бонус!**\n+{BONUS_AMOUNT} 🍇\nВсего: {new_user['balance']}")
 
 @dp.message(Command("топ"))
 async def cmd_top(message: Message):
@@ -358,6 +402,7 @@ async def cmd_help(message: Message):
         "/сбор — собрать виноград\n"
         "/баланс — проверить баланс\n"
         "/магазин — купить улучшения\n"
+        "/пригласить — реферальная ссылка\n"
         "/бонус — бонус каждые 4 часа\n"
         "/топ — рейтинг\n"
         "/помощь — справка\n"
@@ -368,11 +413,7 @@ async def cmd_help(message: Message):
 async def cmd_stats(message: Message):
     total_users = await get_total_users()
     total_grapes = await get_total_grapes()
-    await message.answer(
-        f"📊 **Статистика**\n\n"
-        f"👥 Игроков: {total_users}\n"
-        f"🍇 Всего собрано: {total_grapes}"
-    )
+    await message.answer(f"📊 **Статистика**\n\n👥 Игроков: {total_users}\n🍇 Всего собрано: {total_grapes}")
 
 async def main():
     await init_db()
