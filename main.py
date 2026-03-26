@@ -511,31 +511,47 @@ async def claim_passive_income(user_id):
 
 async def add_to_inventory(user_id, item_id):
     try:
-        user = await get_user(user_id)
-        if not user:
-            return False
-        
-        inventory = user.get('inventory', [])
-        
-        # Проверяем, есть ли уже такой предмет
-        found = False
-        for item in inventory:
-            if item.get('item_id') == item_id:
-                item['quantity'] = item.get('quantity', 1) + 1
-                found = True
-                break
-        
-        if not found:
-            inventory.append({"item_id": item_id, "quantity": 1})
+        logging.info(f"Добавляем {item_id} в инвентарь пользователя {user_id}")
         
         async with pool.acquire() as conn:
+            # Получаем текущий инвентарь
+            row = await conn.fetchrow("SELECT inventory FROM users WHERE user_id = $1", user_id)
+            
+            if not row:
+                logging.error(f"Пользователь {user_id} не найден в БД")
+                return False
+            
+            # Парсим инвентарь
+            try:
+                inventory = json.loads(row['inventory']) if row['inventory'] else []
+            except:
+                inventory = []
+            
+            logging.info(f"Текущий инвентарь: {inventory}")
+            
+            # Проверяем, есть ли уже такой предмет
+            found = False
+            for item in inventory:
+                if isinstance(item, dict) and item.get('item_id') == item_id:
+                    item['quantity'] = item.get('quantity', 1) + 1
+                    found = True
+                    logging.info(f"Обновлено количество {item_id}: {item['quantity']}")
+                    break
+            
+            if not found:
+                inventory.append({"item_id": item_id, "quantity": 1})
+                logging.info(f"Добавлен новый предмет: {item_id}")
+            
+            # Сохраняем в БД
             await conn.execute(
                 "UPDATE users SET inventory = $1 WHERE user_id = $2", 
                 json.dumps(inventory), 
                 user_id
             )
-        
-        return True
+            
+            logging.info(f"Инвентарь сохранен: {inventory}")
+            return True
+            
     except Exception as e:
         logging.error(f"Ошибка add_to_inventory: {e}")
         return False
@@ -911,18 +927,43 @@ async def callback_house(callback: CallbackQuery):
 @dp.callback_query(lambda c: c.data.startswith("farm_"))
 async def callback_farm(callback: CallbackQuery):
     try:
-        # СНАЧАЛА отвечаем на callback!
-        await callback.answer()
-        
         user_id = callback.from_user.id
         action = callback.data.replace("farm_", "")
+        
+        # СНАЧАЛА отвечаем на callback!
+        await callback.answer()
         
         if action == "plant":
             keyboard = InlineKeyboardBuilder()
             for crop_id, crop in CROPS.items():
-                keyboard.button(text=f"{crop['name']} - {crop['cost']} 🍇", callback_data=f"plant_select_{crop_id}")
+                keyboard.button(
+                    text=f"{crop['name']} - {crop['cost']} 🍇", 
+                    callback_data=f"plant_select_{crop_id}"
+                )
             keyboard.adjust(2)
-            await callback.message.answer("🌱 Выберите культуру:", reply_markup=keyboard.as_markup())
+            
+            await callback.message.answer(
+                "🌱 Выберите культуру:", 
+                reply_markup=keyboard.as_markup()
+            )
+            
+        elif action.startswith("plant_select_"):
+            crop_id = action.replace("plant_select_", "")
+            crop = CROPS.get(crop_id)
+            
+            if crop:
+                await callback.message.answer(
+                    f"🌱 **Выбрано:** {crop['name']}\n\n"
+                    f"💰 Цена: {crop['cost']} 🍇\n"
+                    f"⏱ Время роста: {crop['growth_time'] // 3600} ч\n"
+                    f"💵 Награда: {crop['reward']} 🍇\n\n"
+                    f"**Как посадить:**\n"
+                    f"Отправьте команду:\n"
+                    f"`/посадить 1 {crop_id}`\n\n"
+                    f"где `1` - номер грядки (1-3)"
+                )
+            else:
+                await callback.message.answer("❌ Культура не найдена!")
             
         elif action == "upgrade":
             success, msg = await upgrade_farm_level(user_id)
@@ -931,17 +972,11 @@ async def callback_farm(callback: CallbackQuery):
         elif action == "stats":
             user = await get_user(user_id)
             if user:
-                text = "📊 Ферма\n\n"
+                text = "📊 **Ферма**\n\n"
                 text += f"Уровень: {user.get('farm_level', 1)}\n"
                 text += f"Опыт: {user.get('farm_xp', 0)}\n"
                 text += f"Грядок: {len(user.get('farm_plots', []))}"
                 await callback.message.answer(text)
-            
-        elif action.startswith("plant_select_"):
-            crop_id = action.replace("plant_select_", "")
-            crop = CROPS.get(crop_id)
-            if crop:
-                await callback.message.answer(f"🌱 Выбрано: {crop['name']}\n\nТеперь используйте:\n/посадить [номер грядки] {crop_id}\n\nПример: /посадить 1 {crop_id}")
         
     except Exception as e:
         logging.error(f"Ошибка callback_farm: {e}")
