@@ -1552,14 +1552,19 @@ async def cmd_stats(message: Message):
     except Exception as e:
         logging.error(f"Ошибка cmd_stats: {e}")
         await message.answer("❌ Ошибка при загрузке статистики.")
-        async def main():
-    try:
-        await init_db()
-        logging.info("Бот запущен!")
-        await dp.start_polling(bot)
-    except Exception as e:
-        logging.error(f"Критическая ошибка: {e}")
-        raise
+@dp.message(Command("command"))
+async def cmd_function(message: Message):
+    try:  
+        user_id = message.from_user.id  
+        user = await get_user(user_id)  
+        
+        if not user:  
+            await message.answer("Error")  
+            return  
+        
+    except Exception as e:  
+        logging.error(f"Error: {e}")  
+        await message.answer("Error")  
 
 if __name__ == "__main__":
     asyncio.run(main())
