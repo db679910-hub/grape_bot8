@@ -21,6 +21,7 @@ async def init_db():
     global pool
     pool = await asyncpg.create_pool(DATABASE_URL)
     async with pool.acquire() as conn:
+        # Создаём таблицу
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id BIGINT PRIMARY KEY,
@@ -29,6 +30,11 @@ async def init_db():
                 last_bonus INTEGER DEFAULT 0
             )
         """)
+        # Добавляем колонку last_bonus если её нет
+        try:
+            await conn.execute("ALTER TABLE users ADD COLUMN last_bonus INTEGER DEFAULT 0")
+        except:
+            pass  # Колонка уже есть
     logging.info("✅ PostgreSQL подключена!")
 
 async def get_user(user_id):
@@ -159,36 +165,38 @@ async def cmd_top(message: Message):
 
 @dp.message(Command("бонус"))
 async def cmd_bonus(message: Message):
-    user_id = message.from_user.id
-    await add_user(user_id)
-    now = int(time.time())
-    user = await get_user(user_id)
-    last_bonus = user['last_bonus'] if user else 0
-    
-    # 4 часа = 14400 секунд
-    bonus_cooldown = BONUS_HOURS * 3600
-    
-    if now - last_bonus < bonus_cooldown:
-        remaining = bonus_cooldown - (now - last_bonus)
-        hours = remaining // 3600
-        minutes = (remaining % 3600) // 60
-        seconds = remaining % 60
+    try:
+        user_id = message.from_user.id
+        await add_user(user_id)
+        now = int(time.time())
+        user = await get_user(user_id)
+        last_bonus = user['last_bonus'] if user and 'last_bonus' in user else 0
+        
+        bonus_cooldown = BONUS_HOURS * 3600
+        
+        if now - last_bonus < bonus_cooldown:
+            remaining = bonus_cooldown - (now - last_bonus)
+            hours = remaining // 3600
+            minutes = (remaining % 3600) // 60
+            await message.answer(
+                f"⏰ Бонус уже получен!\n\n"
+                f"Следующий бонус через:\n"
+                f"{hours}ч {minutes}м"
+            )
+            return
+        
+        await update_balance(user_id, BONUS_AMOUNT)
+        await update_bonus_time(user_id, now)
+        new_user = await get_user(user_id)
         await message.answer(
-            f"⏰ Бонус уже получен!\n\n"
-            f"Следующий бонус через:\n"
-            f"{hours}ч {minutes}м {seconds}с"
+            f"🎁 **Бонус получен!**\n\n"
+            f"+{BONUS_AMOUNT} винограда 🍇\n"
+            f"Всего: {new_user['balance']}\n\n"
+            f"Следующий бонус через {BONUS_HOURS} часа!"
         )
-        return
-    
-    await update_balance(user_id, BONUS_AMOUNT)
-    await update_bonus_time(user_id, now)
-    new_user = await get_user(user_id)
-    await message.answer(
-        f"🎁 **Бонус получен!**\n\n"
-        f"+{BONUS_AMOUNT} винограда 🍇\n"
-        f"Всего: {new_user['balance']}\n\n"
-        f"Следующий бонус через {BONUS_HOURS} часа!"
-    )
+    except Exception as e:
+        logging.error(f"Ошибка в /бонус: {e}")
+        await message.answer("❌ Произошла ошибка. Попробуйте позже.")
 
 @dp.message(Command("помощь"))
 async def cmd_help(message: Message):
