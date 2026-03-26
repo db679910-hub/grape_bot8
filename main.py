@@ -134,6 +134,7 @@ async def init_db():
         logging.info("База данных подключена!")
         
         async with pool.acquire() as conn:
+            # Создаём таблицу users если не существует
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     user_id BIGINT PRIMARY KEY,
@@ -164,7 +165,39 @@ async def init_db():
                     total_earned INTEGER DEFAULT 0
                 )
             """)
-            logging.info("Таблица users готова!")
+            logging.info("Таблица users проверена!")
+            
+            # Добавляем колонку inventory если её нет
+            try:
+                await conn.execute("""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS inventory TEXT DEFAULT '[]'
+                """)
+                logging.info("Колонка inventory добавлена/проверена!")
+            except Exception as e:
+                logging.info(f"Колонка inventory уже существует: {e}")
+            
+            # Добавляем другие недостающие колонки
+            columns_to_add = [
+                ("farm_plots", "TEXT DEFAULT '[\"empty\", \"empty\", \"empty\"]'"),
+                ("tools", "TEXT DEFAULT '[]'"),
+                ("boosters", "TEXT DEFAULT '[]'"),
+                ("farm_level", "INTEGER DEFAULT 1"),
+                ("farm_xp", "INTEGER DEFAULT 0"),
+                ("house_level", "INTEGER DEFAULT 1"),
+                ("house_xp", "INTEGER DEFAULT 0"),
+                ("last_passive_claim", "INTEGER DEFAULT 0"),
+                ("gifts_sent", "INTEGER DEFAULT 0"),
+                ("gifts_received", "INTEGER DEFAULT 0"),
+                ("total_harvest", "INTEGER DEFAULT 0"),
+                ("total_earned", "INTEGER DEFAULT 0")
+            ]
+            
+            for col_name, col_type in columns_to_add:
+                try:
+                    await conn.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
+                    logging.info(f"Колонка {col_name} добавлена/проверена!")
+                except Exception as e:
+                    logging.info(f"Колонка {col_name} уже существует: {e}")
         
         logging.info("База данных готова!")
     except Exception as e:
