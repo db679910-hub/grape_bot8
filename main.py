@@ -728,26 +728,34 @@ async def cmd_gifts(message: Message):
 @dp.callback_query(lambda c: c.data.startswith("gift_"))
 async def callback_gift_buy(callback: CallbackQuery):
     try:
+        # СНАЧАЛА отвечаем на callback!
+        await callback.answer()
+        
         user_id = callback.from_user.id
         item_id = callback.data.replace("gift_", "")
         
         item = GIFT_CATALOG.get(item_id)
         if not item:
-            await callback.answer("❌ Не найден", show_alert=True)
+            await callback.message.answer("❌ Подарок не найден")
             return
         
         user = await get_user(user_id)
+        if not user:
+            await callback.message.answer("❌ Ошибка пользователя")
+            return
+            
         if user['balance'] < item['price']:
-            await callback.answer("❌ Недостаточно", show_alert=True)
+            await callback.message.answer("❌ Недостаточно винограда 🍇")
             return
         
         await update_balance(user_id, -item['price'])
         await add_to_inventory(user_id, item_id)
         
-        await callback.message.answer(f"✅ {item['name']} куплен!\n/инвентарь - посмотреть")
-        await callback.answer()
+        await callback.message.answer(f"✅ {item['name']} куплен!\n\n/инвентарь - посмотреть подарки")
+        
     except Exception as e:
         logging.error(f"Ошибка callback_gift_buy: {e}")
+        await callback.answer("❌ Ошибка покупки", show_alert=True)
 
 @dp.message(Command("инвентарь"))
 async def cmd_inventory(message: Message):
@@ -861,6 +869,9 @@ async def callback_house(callback: CallbackQuery):
 @dp.callback_query(lambda c: c.data.startswith("farm_"))
 async def callback_farm(callback: CallbackQuery):
     try:
+        # СНАЧАЛА отвечаем на callback!
+        await callback.answer()
+        
         user_id = callback.from_user.id
         action = callback.data.replace("farm_", "")
         
@@ -870,23 +881,29 @@ async def callback_farm(callback: CallbackQuery):
                 keyboard.button(text=f"{crop['name']} - {crop['cost']} 🍇", callback_data=f"plant_select_{crop_id}")
             keyboard.adjust(2)
             await callback.message.answer("🌱 Выберите культуру:", reply_markup=keyboard.as_markup())
+            
         elif action == "upgrade":
             success, msg = await upgrade_farm_level(user_id)
-            await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
+            await callback.message.answer(msg)
+            
         elif action == "stats":
             user = await get_user(user_id)
-            text = "📊 Ферма\n\n"
-            text += f"Уровень: {user.get('farm_level', 1)}\n"
-            text += f"Опыт: {user.get('farm_xp', 0)}\n"
-            text += f"Грядок: {len(user.get('farm_plots', []))}"
-            await callback.message.answer(text)
+            if user:
+                text = "📊 Ферма\n\n"
+                text += f"Уровень: {user.get('farm_level', 1)}\n"
+                text += f"Опыт: {user.get('farm_xp', 0)}\n"
+                text += f"Грядок: {len(user.get('farm_plots', []))}"
+                await callback.message.answer(text)
+            
         elif action.startswith("plant_select_"):
             crop_id = action.replace("plant_select_", "")
-            await callback.message.answer(f"🌱 Выбрано: {CROPS[crop_id]['name']}\n\nИспользуйте /посадить [номер] {crop_id}")
+            crop = CROPS.get(crop_id)
+            if crop:
+                await callback.message.answer(f"🌱 Выбрано: {crop['name']}\n\nТеперь используйте:\n/посадить [номер грядки] {crop_id}\n\nПример: /посадить 1 {crop_id}")
         
-        await callback.answer()
     except Exception as e:
         logging.error(f"Ошибка callback_farm: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
 
 @dp.message(Command("посадить"))
 async def cmd_plant(message: Message):
