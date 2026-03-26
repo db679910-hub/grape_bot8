@@ -13,7 +13,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 GRAPE_REWARD = 5
-COOLDOWN_SECONDS = 60
+COOLDOWN_HOURS = 4 
 BONUS_HOURS = 4
 BONUS_AMOUNT = 50
 REFERRAL_BONUS = 100
