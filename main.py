@@ -788,23 +788,16 @@ async def cmd_transfer_gift(message: Message):
             )
             return
         
-        # Получаем username получателя
         target_username = args[1].replace('@', '')
         item_id = args[2]
         
         logging.info(f"Передача: от {message.from_user.id} к @{target_username}, предмет {item_id}")
         
-        # Проверяем, существует ли предмет
         item = GIFT_CATALOG.get(item_id)
         if not item:
-            await message.answer(
-                f"❌ Предмет не найден!\n\n"
-                f"Доступные предметы:\n" +
-                "\n".join([f"{gid} - {g['name']}" for gid, g in GIFT_CATALOG.items()])
-            )
+            await message.answer(f"❌ Предмет не найден!")
             return
         
-        # Получаем отправителя
         sender_id = message.from_user.id
         sender = await get_user(sender_id)
         
@@ -812,95 +805,89 @@ async def cmd_transfer_gift(message: Message):
             await message.answer("❌ Ошибка: вы не зарегистрированы")
             return
         
-        # Проверяем инвентарь отправителя
         sender_inventory = sender.get('inventory', [])
         logging.info(f"Инвентарь отправителя: {sender_inventory}")
         
-        # Ищем предмет в инвентаре
         item_found = False
         item_index = -1
         
         for i, inv_item in enumerate(sender_inventory):
-            logging.info(f"Проверка предмета {i}: {inv_item}")
             if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
                 item_found = True
                 item_index = i
-                logging.info(f"Предмет найден на позиции {i}")
                 break
         
         if not item_found:
-            await message.answer(f"❌ У вас нет предмета \"{item['name']}\"!\n\n/инвентарь - посмотреть ваши подарки")
+            await message.answer(f"❌ У вас нет предмета \"{item['name']}\"!")
             return
         
-        # Получаем получателя
-        recipient = await get_user_by_username(target_username)
+        # Получаем получателя из БД напрямую
+        async with pool.acquire() as conn:
+            recipient_row = await conn.fetchrow(
+                "SELECT user_id, username, inventory FROM users WHERE username = $1",
+                target_username.lower()
+            )
+            
+            if not recipient_row:
+                await message.answer(f"❌ Пользователь @{target_username} не найден!")
+                return
+            
+            recipient_id = recipient_row['user_id']
+            
+            if recipient_id == sender_id:
+                await message.answer("❌ Нельзя передать подарок самому себе!")
+                return
+            
+            # Парсим инвентарь получателя
+            try:
+                recipient_inventory = json.loads(recipient_row['inventory']) if recipient_row['inventory'] else []
+            except:
+                recipient_inventory = []
+            
+            logging.info(f"Инвентарь получателя до: {recipient_inventory}")
+            
+            # Убираем из инвентаря отправителя
+            if sender_inventory[item_index].get('quantity', 1) > 1:
+                sender_inventory[item_index]['quantity'] -= 1
+            else:
+                sender_inventory.pop(item_index)
+            
+            await conn.execute(
+                "UPDATE users SET inventory = $1 WHERE user_id = $2",
+                json.dumps(sender_inventory),
+                sender_id
+            )
+            
+            # Добавляем в инвентарь получателя
+            found = False
+            for inv_item in recipient_inventory:
+                if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
+                    inv_item['quantity'] = inv_item.get('quantity', 1) + 1
+                    found = True
+                    break
+            
+            if not found:
+                recipient_inventory.append({"item_id": item_id, "quantity": 1})
+            
+            logging.info(f"Инвентарь получателя после: {recipient_inventory}")
+            
+            await conn.execute(
+                "UPDATE users SET inventory = $1 WHERE user_id = $2",
+                json.dumps(recipient_inventory),
+                recipient_id
+            )
+            
+            await conn.execute(
+                "UPDATE users SET gifts_sent = gifts_sent + 1 WHERE user_id = $1",
+                sender_id
+            )
+            await conn.execute(
+                "UPDATE users SET gifts_received = gifts_received + 1 WHERE user_id = $1",
+                recipient_id
+            )
+            
+            logging.info(f"Подарок {item_id} успешно передан от {sender_id} к {recipient_id}")
         
-        if not recipient:
-            await message.answer(f"❌ Пользователь @{target_username} не найден!\n\nОн должен сначала запустить бота /start")
-            return
-        
-        if recipient['user_id'] == sender_id:
-            await message.answer("❌ Нельзя передать подарок самому себе!")
-            return
-        
-        # Передаём подарок
-        try:
-            async with pool.acquire() as conn:
-                # Убираем из инвентаря отправителя
-                if sender_inventory[item_index].get('quantity', 1) > 1:
-                    sender_inventory[item_index]['quantity'] -= 1
-                    logging.info(f"Уменьшено количество {item_id} до {sender_inventory[item_index]['quantity']}")
-                else:
-                    sender_inventory.pop(item_index)
-                    logging.info(f"Удален предмет {item_id} из инвентаря")
-                
-                await conn.execute(
-                    "UPDATE users SET inventory = $1 WHERE user_id = $2",
-                    json.dumps(sender_inventory),
-                    sender_id
-                )
-                
-                # Добавляем в инвентарь получателя
-                recipient_inventory = recipient.get('inventory', [])
-                logging.info(f"Инвентарь получателя до: {recipient_inventory}")
-                
-                # Проверяем, есть ли уже такой предмет у получателя
-                found = False
-                for inv_item in recipient_inventory:
-                    if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
-                        inv_item['quantity'] = inv_item.get('quantity', 1) + 1
-                        found = True
-                        logging.info(f"Обновлено количество {item_id} у получателя: {inv_item['quantity']}")
-                        break
-                
-                if not found:
-                    recipient_inventory.append({"item_id": item_id, "quantity": 1})
-                    logging.info(f"Добавлен новый предмет {item_id} получателю")
-                
-                await conn.execute(
-                    "UPDATE users SET inventory = $1 WHERE user_id = $2",
-                    json.dumps(recipient_inventory),
-                    recipient['user_id']
-                )
-                
-                # Увеличиваем счётчики
-                await conn.execute(
-                    "UPDATE users SET gifts_sent = gifts_sent + 1 WHERE user_id = $1",
-                    sender_id
-                )
-                await conn.execute(
-                    "UPDATE users SET gifts_received = gifts_received + 1 WHERE user_id = $1",
-                    recipient['user_id']
-                )
-                
-                logging.info(f"Подарок {item_id} успешно передан от {sender_id} к {recipient['user_id']}")
-        
-        except Exception as db_error:
-            logging.error(f"Ошибка базы данных при передаче: {db_error}")
-            await message.answer("❌ Ошибка при передаче подарка. Попробуйте позже.")
-            return
-        
-        # Отправляем уведомления
         sender_name = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
         
         await message.answer(
@@ -910,23 +897,20 @@ async def cmd_transfer_gift(message: Message):
             f"Подарок успешно доставлен! 🎉"
         )
         
-        # Уведомляем получателя
         try:
             await bot.send_message(
-                recipient['user_id'],
+                recipient_id,
                 f"🎁 **Вам передали подарок!**\n\n"
                 f"📦 Предмет: {item['name']}\n"
                 f"👤 От: {sender_name}\n\n"
                 f"/инвентарь - посмотреть подарки"
             )
-            logging.info(f"Уведомление отправлено получателю {recipient['user_id']}")
-        except Exception as notify_error:
-            logging.error(f"Не удалось отправить уведомление получателю: {notify_error}")
-            # Не прерываем процесс, подарок уже передан
+        except:
+            pass
         
     except Exception as e:
         logging.error(f"Ошибка cmd_transfer_gift: {e}")
-        await message.answer(f"❌ Ошибка передачи подарка\n\nДетали: {str(e)}")
+        await message.answer(f"❌ Ошибка передачи подарка")
 @dp.message(Command("ферма"))
 async def cmd_farm(message: Message):
     try:
