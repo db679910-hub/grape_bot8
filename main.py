@@ -108,7 +108,7 @@ HOUSES = {
     "god_palace": {"name": "✨ Дворец богов", "level": 9, "price": 5000000, "passive_income": 15000},
 }
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 pool = None
 
 SHOP_ITEMS = {
@@ -317,19 +317,26 @@ async def plant_crop(user_id, plot_index, crop_id):
     try:
         user = await get_user(user_id)
         if not user:
+            logging.error(f"Пользователь {user_id} не найден")
             return False, "Пользователь не найден"
         
         plots = user.get('farm_plots', ["empty", "empty", "empty"])
+        logging.info(f"Грядки до посадки: {plots}")
         
         if plot_index < 0 or plot_index >= len(plots):
-            return False, "Неверный номер грядки"
+            return False, f"Неверный номер грядки (доступно: 1-{len(plots)})"
         
         crop = CROPS.get(crop_id)
         if not crop:
-            return False, "Культура не найдена"
+            logging.error(f"Культура {crop_id} не найдена")
+            return False, f"Культура не найдена! Доступные: {', '.join(CROPS.keys())}"
         
         if user['balance'] < crop['cost']:
-            return False, f"Недостаточно винограда! Нужно {crop['cost']}"
+            return False, f"Недостаточно винограда! Нужно {crop['cost']} 🍇"
+        
+        # Проверяем, пуста ли грядка
+        if plots[plot_index] != "empty" and isinstance(plots[plot_index], dict):
+            return False, "Грядка занята! Сначала соберите урожай."
         
         plots[plot_index] = {
             "crop": crop_id,
@@ -337,14 +344,22 @@ async def plant_crop(user_id, plot_index, crop_id):
             "ready": False
         }
         
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE users SET balance = balance - $1, farm_plots = $2 WHERE user_id = $3", 
-                              crop['cost'], json.dumps(plots), user_id)
+        logging.info(f"Грядки после посадки: {plots}")
         
-        return True, f"{crop['name']} посажен!"
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE users SET balance = balance - $1, farm_plots = $2 WHERE user_id = $3", 
+                crop['cost'], 
+                json.dumps(plots), 
+                user_id
+            )
+        
+        logging.info(f"Пользователь {user_id} посадил {crop_id} на грядку {plot_index}")
+        return True, f"{crop['name']} посажен на грядку {plot_index + 1}!"
+        
     except Exception as e:
         logging.error(f"Ошибка plant_crop: {e}")
-        return False, "Ошибка посадки"
+        return False, f"Ошибка посадки: {str(e)}"
 
 async def harvest_crop(user_id, plot_index):
     try:
@@ -495,23 +510,35 @@ async def claim_passive_income(user_id):
         return False, "Ошибка получения дохода"
 
 async def add_to_inventory(user_id, item_id):
-    async with pool.acquire() as conn:
+    try:
         user = await get_user(user_id)
+        if not user:
+            return False
+        
         inventory = user.get('inventory', [])
-        inventory.append({"item_id": item_id, "quantity": 1})
-        await conn.execute("UPDATE users SET inventory = $1 WHERE user_id = $2", json.dumps(inventory), user_id)
-
-async def send_gift(from_user_id, to_user_id, amount):
-    async with pool.acquire() as conn:
-        commission = int(amount * GIFT_COMMISSION / 100)
-        received = amount - commission
         
-        await conn.execute("UPDATE users SET balance = balance - $1 WHERE user_id = $2", amount, from_user_id)
-        await conn.execute("UPDATE users SET balance = balance + $1 WHERE user_id = $2", received, to_user_id)
-        await conn.execute("UPDATE users SET gifts_sent = gifts_sent + 1, total_gifted = total_gifted + $1 WHERE user_id = $2", amount, from_user_id)
-        await conn.execute("UPDATE users SET gifts_received = gifts_received + 1, total_received = total_received + $1 WHERE user_id = $2", received, to_user_id)
+        # Проверяем, есть ли уже такой предмет
+        found = False
+        for item in inventory:
+            if item.get('item_id') == item_id:
+                item['quantity'] = item.get('quantity', 1) + 1
+                found = True
+                break
         
-        return commission, received
+        if not found:
+            inventory.append({"item_id": item_id, "quantity": 1})
+        
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE users SET inventory = $1 WHERE user_id = $2", 
+                json.dumps(inventory), 
+                user_id
+            )
+        
+        return True
+    except Exception as e:
+        logging.error(f"Ошибка add_to_inventory: {e}")
+        return False
 
 async def get_skin_emoji(skin):
     return {"grape": "🍇", "wine": "🍷", "diamond": "💎", "gold": "🏆"}.get(skin, "🍇")
@@ -761,30 +788,45 @@ async def callback_gift_buy(callback: CallbackQuery):
 async def cmd_inventory(message: Message):
     try:
         user = await get_user(message.from_user.id)
-        inventory = user.get('inventory', []) if user else []
+        if not user:
+            await message.answer("❌ Ошибка пользователя")
+            return
         
-        if not inventory:
+        inventory = user.get('inventory', [])
+        
+        logging.info(f"Инвентарь пользователя {message.from_user.id}: {inventory}")
+        
+        if not inventory or len(inventory) == 0:
             await message.answer("📦 Инвентарь пуст\n\n/подарки - купить подарки")
             return
         
-        text = "📦 Ваш инвентарь\n\n"
+        text = "📦 ВАШ ИНВЕНТАРЬ 📦\n\n"
         
         item_counts = {}
         for item in inventory:
             item_id = item.get('item_id')
+            quantity = item.get('quantity', 1)
             if item_id in item_counts:
-                item_counts[item_id] += 1
+                item_counts[item_id] += quantity
             else:
-                item_counts[item_id] = 1
+                item_counts[item_id] = quantity
+        
+        if not item_counts:
+            await message.answer("📦 Инвентарь пуст")
+            return
         
         for item_id, count in item_counts.items():
             item = GIFT_CATALOG.get(item_id)
             if item:
                 text += f"{item['name']} x{count}\n"
+            else:
+                text += f"❓ Неизвестный предмет x{count}\n"
         
         await message.answer(text)
+        
     except Exception as e:
         logging.error(f"Ошибка cmd_inventory: {e}")
+        await message.answer("❌ Ошибка просмотра инвентаря")
 
 @dp.message(Command("бустеры"))
 async def cmd_boosters(message: Message):
