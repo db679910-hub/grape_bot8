@@ -541,42 +541,60 @@ async def add_to_inventory(user_id, item_id):
         logging.info(f"Добавляем {item_id} в инвентарь пользователя {user_id}")
         
         async with pool.acquire() as conn:
+            # Получаем текущий инвентарь
             row = await conn.fetchrow("SELECT inventory FROM users WHERE user_id = $1", user_id)
             
             if not row:
-                logging.error(f"Пользователь {user_id} не найден в БД")
+                logging.error(f"Пользователь {user_id} не найден")
                 return False
             
-            try:
-                inventory = json.loads(row['inventory']) if row['inventory'] else []
-            except:
+            # Парсим существующий инвентарь
+            inventory_json = row['inventory']
+            logging.info(f"Текущий инвентарь в БД: {inventory_json}")
+            
+            if inventory_json is None or inventory_json == '':
                 inventory = []
+            else:
+                try:
+                    inventory = json.loads(inventory_json)
+                except json.JSONDecodeError as e:
+                    logging.error(f"Ошибка парсинга JSON: {e}")
+                    inventory = []
             
-            logging.info(f"Текущий инвентарь: {inventory}")
+            logging.info(f"Инвентарь до добавления: {inventory}")
             
+            # Ищем существующий предмет
             found = False
             for item in inventory:
                 if isinstance(item, dict) and item.get('item_id') == item_id:
-                    item['quantity'] = item.get('quantity', 1) + 1
+                    old_qty = item.get('quantity', 1)
+                    item['quantity'] = old_qty + 1
                     found = True
-                    logging.info(f"Обновлено количество {item_id}: {item['quantity']}")
+                    logging.info(f"Обновлён предмет {item_id}: {old_qty} -> {item['quantity']}")
                     break
             
+            # Если не нашли - добавляем новый
             if not found:
                 inventory.append({"item_id": item_id, "quantity": 1})
                 logging.info(f"Добавлен новый предмет: {item_id}")
             
+            # Сохраняем в БД
+            new_inventory_json = json.dumps(inventory, ensure_ascii=False)
+            logging.info(f"Новый инвентарь: {new_inventory_json}")
+            
             await conn.execute(
-                "UPDATE users SET inventory = $1 WHERE user_id = $2", 
-                json.dumps(inventory), 
+                "UPDATE users SET inventory = $1 WHERE user_id = $2",
+                new_inventory_json,
                 user_id
             )
             
-            logging.info(f"Инвентарь сохранен: {inventory}")
+            logging.info(f"Инвентарь сохранён для пользователя {user_id}")
             return True
             
     except Exception as e:
         logging.error(f"Ошибка add_to_inventory: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return False
 
 async def send_gift(from_user_id, to_user_id, amount):
@@ -644,7 +662,79 @@ async def cmd_start(message: Message):
     except Exception as e:
         logging.error(f"Ошибка cmd_start: {e}")
         await message.answer("❌ Произошла ошибка. Попробуйте позже.")
-
+@dp.callback_query(lambda c: c.data.startswith("gift_"))
+async def callback_gift_buy(callback: CallbackQuery):
+    try:
+        await callback.answer()
+        
+        user_id = callback.from_user.id
+        item_id = callback.data.replace("gift_", "")
+        
+        logging.info(f"=== ПОКУПКА ПОДАРКА ===")
+        logging.info(f"Пользователь: {user_id}")
+        logging.info(f"Предмет: {item_id}")
+        
+        item = GIFT_CATALOG.get(item_id)
+        if not item:
+            logging.error(f"Предмет {item_id} не найден в каталоге")
+            await callback.message.answer("❌ Подарок не найден")
+            return
+        
+        user = await get_user(user_id)
+        if not user:
+            logging.error(f"Пользователь {user_id} не найден")
+            await callback.message.answer("❌ Ошибка пользователя")
+            return
+        
+        balance = user.get('balance', 0)
+        price = item['price']
+        
+        logging.info(f"Баланс: {balance}, Цена: {price}")
+        
+        if balance < price:
+            logging.warning(f"Недостаточно средств: {balance} < {price}")
+            await callback.message.answer(f"❌ Недостаточно винограда! Нужно {price}, у вас {balance}")
+            return
+        
+        # Списываем баланс
+        new_balance = balance - price
+        await update_balance(user_id, -price)
+        logging.info(f"Баланс списан: {balance} -> {new_balance}")
+        
+        # Добавляем в инвентарь
+        success = await add_to_inventory(user_id, item_id)
+        logging.info(f"Результат добавления в инвентарь: {success}")
+        
+        if success:
+            # Проверяем, что действительно добавилось
+            updated_user = await get_user(user_id)
+            if updated_user:
+                inv = updated_user.get('inventory', [])
+                logging.info(f"Инвентарь после покупки: {inv}")
+            
+            await callback.message.answer(
+                f"✅ {item['name']} куплен!\n\n"
+                f"Списано: {price} 🍇\n"
+                f"Остаток: {new_balance} 🍇\n"
+                f"/инвентарь - посмотреть подарки"
+            )
+            logging.info("Покупка успешна!")
+        else:
+            # Возвращаем деньги
+            await update_balance(user_id, price)
+            logging.error(f"Ошибка добавления в инвентарь. Деньги возвращены.")
+            await callback.message.answer(
+                "❌ Ошибка добавления в инвентарь!\n"
+                "Деньги возвращены на баланс."
+            )
+        
+        logging.info("=== КОНЕЦ ПОКУПКИ ===")
+        
+    except Exception as e:
+        logging.error(f"Критическая ошибка callback_gift_buy: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        await callback.answer("❌ Ошибка покупки", show_alert=True)
 @dp.callback_query(lambda c: c.data == "farm_plant")
 async def callback_farm_plant(callback: CallbackQuery):
     try:
@@ -1156,104 +1246,58 @@ async def cmd_gifts(message: Message):
 @dp.message(Command("инвентарь"))
 async def cmd_inventory(message: Message):
     try:
-        args = message.text.split()
         user_id = message.from_user.id
+        logging.info(f"Пользователь {user_id} запросил инвентарь")
         
-        if len(args) > 1:
-            target_username = args[1].replace('@', '')
-            
-            target_user = await get_user_by_username(target_username)
-            
-            if not target_user:
-                await message.answer(f"❌ Пользователь @{target_username} не найден!")
-                return
-            
-            inventory = target_user.get('inventory', [])
-            
-            if not inventory or len(inventory) == 0:
-                await message.answer(f"📦 Инвентарь @{target_username} пуст")
-                return
-            
-            text = f"📦 **Инвентарь @{target_username}**\n\n"
-            
-            item_counts = {}
-            for item in inventory:
-                if isinstance(item, dict):
-                    item_id = item.get('item_id')
-                    quantity = item.get('quantity', 1)
-                    if item_id:
-                        item_counts[item_id] = item_counts.get(item_id, 0) + quantity
-            
-            if not item_counts:
-                await message.answer("📦 Инвентарь пуст")
-                return
-            
-            for item_id, count in item_counts.items():
-                item = GIFT_CATALOG.get(item_id)
-                if item:
-                    if item.get('rarity') in ['epic', 'legendary']:
-                        text += f"{item['name']} ✅\n"
-                    else:
-                        text += f"{item['name']} x{min(count, 99)}\n"
-                else:
-                    text += f"❓ Неизвестный предмет ✅\n"
-            
+        user = await get_user(user_id)
+        if not user:
+            await message.answer("❌ Ошибка пользователя")
+            return
+        
+        inventory = user.get('inventory', [])
+        logging.info(f"Инвентарь пользователя: {inventory}")
+        
+        if not inventory or len(inventory) == 0:
+            text = (
+                "📦 Ваш инвентарь пуст\n\n"
+                "💡 Как получить подарки:\n"
+                "• Купите в /подарки\n"
+                "• Получите от других игроков"
+            )
             await message.answer(text)
             return
         
-        logging.info(f"Пользователь {user_id} запросил свой инвентарь")
+        text = "📦 Ваш инвентарь\n\n"
         
-        async with pool.acquire() as conn:
-            row = await conn.fetchrow("SELECT inventory FROM users WHERE user_id = $1", user_id)
-            
-            if not row:
-                await message.answer("❌ Ошибка доступа")
-                return
-            
-            try:
-                inventory = json.loads(row['inventory']) if row['inventory'] else []
-            except:
-                inventory = []
-            
-            if not inventory or len(inventory) == 0:
-                text = (
-                    "📦 **Ваш инвентарь пуст**\n\n"
-                    "💡 **Как получить подарки:**\n"
-                    "• Купите в /подарки\n"
-                    "• Получите от других игроков\n"
-                    "• Участвуйте в событиях"
-                )
-                await message.answer(text)
-                return
-            
-            text = "📦 **Ваш инвентарь**\n\n"
-            
-            item_counts = {}
-            for item in inventory:
-                if isinstance(item, dict):
-                    item_id = item.get('item_id')
-                    quantity = item.get('quantity', 1)
-                    if item_id:
-                        item_counts[item_id] = item_counts.get(item_id, 0) + quantity
-            
-            if not item_counts:
-                await message.answer("📦 Инвентарь пуст")
-                return
-            
-            for item_id, count in item_counts.items():
-                item = GIFT_CATALOG.get(item_id)
-                if item:
-                    text += f"{item['name']} x{count}\n"
-                else:
-                    text += f"❓ {item_id} x{count}\n"
-            
-            text += "\n💡 Используйте /передать @user предмет чтобы подарить"
-            
-            await message.answer(text)
-            
+        item_counts = {}
+        for item in inventory:
+            if isinstance(item, dict):
+                item_id = item.get('item_id')
+                quantity = item.get('quantity', 1)
+                if item_id:
+                    item_counts[item_id] = item_counts.get(item_id, 0) + quantity
+        
+        if not item_counts:
+            await message.answer("📦 Инвентарь пуст")
+            return
+        
+        for item_id, count in item_counts.items():
+            item_info = GIFT_CATALOG.get(item_id)
+            if item_info:
+                text += f"{item_info['name']} x{count}\n"
+            else:
+                text += f"❓ {item_id} x{count}\n"
+        
+        text += f"\n💡 Используйте /передать @user предмет чтобы подарить"
+        
+        await message.answer(text)
+        logging.info("Инвентарь показан успешно")
+        
     except Exception as e:
         logging.error(f"Ошибка cmd_inventory: {e}")
-        await message.answer("❌ Ошибка при загрузке инвентаря.")
+        import traceback
+        logging.error(traceback.format_exc())
+        await message.answer("❌ Ошибка просмотра инвентаря")
 
 @dp.message(Command("бустеры"))
 async def cmd_boosters(message: Message):
