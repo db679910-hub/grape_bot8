@@ -32,7 +32,7 @@ GIFT_MAX = 10000
 GIFT_COMMISSION = 5
 
 # =============================================================================
-# КУЛЬТУРЫ (ИСПРАВЛЕНО: убраны все пробелы в ключах)
+# КУЛЬТУРЫ
 # =============================================================================
 CROPS = {
     "grape": {"name": "🍇 Виноград", "cost": 0, "reward": 15, "growth_time": 14400, "xp": 10},
@@ -48,7 +48,7 @@ CROPS = {
 }
 
 # =============================================================================
-# УЛУЧШЕНИЯ ФЕРМЫ (МАКСИМУМ 15 ГРЯДОК, ВЫСОКИЕ ЦЕНЫ)
+# УЛУЧШЕНИЯ ФЕРМЫ
 # =============================================================================
 FARM_UPGRADES = {
     1: {"level": 1, "plots": 3, "upgrade_cost": 0},
@@ -61,7 +61,7 @@ FARM_UPGRADES = {
 }
 
 # =============================================================================
-# ИНСТРУМЕНТЫ (ИСПРАВЛЕНО: убраны пробелы)
+# ИНСТРУМЕНТЫ
 # =============================================================================
 TOOLS = {
     "hoe": {"name": "🔓 Мотыга", "price": 200, "effect": "growth_speed", "bonus": 1.1},
@@ -74,7 +74,7 @@ TOOLS = {
 }
 
 # =============================================================================
-# КАТАЛОГ ПОДАРКОВ (ИСПРАВЛЕНО: убраны пробелы)
+# КАТАЛОГ ПОДАРКОВ
 # =============================================================================
 GIFT_CATALOG = {
     "chocolate": {"name": "🍫 Шоколадка", "price": 50, "rarity": "common"},
@@ -93,7 +93,7 @@ GIFT_CATALOG = {
 }
 
 # =============================================================================
-# БУСТЕРЫ (ИСПРАВЛЕНО: убраны пробелы)
+# БУСТЕРЫ
 # =============================================================================
 BOOSTERS = {
     "speed_1h": {"name": "⚡ Ускорение 1ч", "price": 50, "duration": 3600, "effect": "growth_speed", "bonus": 1.5},
@@ -114,18 +114,107 @@ BOOSTERS = {
 }
 
 # =============================================================================
-# ДОМА (ИСПРАВЛЕНО: убраны пробелы)
+# УРОВНИ ДОМОВ (ОБНОВЛЕНО)
 # =============================================================================
 HOUSES = {
-    "tent": {"name": "⛺ Палатка", "level": 1, "price": 0, "passive_income": 1},
-    "hut": {"name": "🛖 Хижина", "level": 2, "price": 1000, "passive_income": 5},
-    "cottage": {"name": "🏡 Коттедж", "level": 3, "price": 5000, "passive_income": 20},
-    "mansion": {"name": "🏰 Особняк", "level": 4, "price": 15000, "passive_income": 50},
-    "castle": {"name": "🏯 Замок", "level": 5, "price": 50000, "passive_income": 150},
-    "palace": {"name": "👑 Дворец", "level": 6, "price": 150000, "passive_income": 500},
-    "sky_mansion": {"name": "☁️ Небесный особняк", "level": 7, "price": 500000, "passive_income": 1500},
-    "dragon_castle": {"name": "🐉 Замок дракона", "level": 8, "price": 1500000, "passive_income": 5000},
-    "god_palace": {"name": "✨ Дворец богов", "level": 9, "price": 5000000, "passive_income": 15000},
+    1: {"name": "⛺ Палатка", "level": 1, "price": 0, "passive_income": 10, "servant_slots": 0, "maintenance": 0},
+    2: {"name": "🏕️ Лагерь", "level": 2, "price": 5000, "passive_income": 50, "servant_slots": 1, "maintenance": 10},
+    3: {"name": "🛖 Хижина", "level": 3, "price": 15000, "passive_income": 150, "servant_slots": 2, "maintenance": 30},
+    4: {"name": "🏡 Коттедж", "level": 4, "price": 40000, "passive_income": 400, "servant_slots": 3, "maintenance": 80},
+    5: {"name": "🏰 Особняк", "level": 5, "price": 100000, "passive_income": 1000, "servant_slots": 5, "maintenance": 200},
+    6: {"name": "🏯 Замок", "level": 6, "price": 300000, "passive_income": 3000, "servant_slots": 7, "maintenance": 600},
+    7: {"name": "👑 Дворец", "level": 7, "price": 800000, "passive_income": 8000, "servant_slots": 10, "maintenance": 1600},
+    8: {"name": "☁️ Небесный дворец", "level": 8, "price": 2000000, "passive_income": 20000, "servant_slots": 15, "maintenance": 4000},
+    9: {"name": "🌟 Дворец богов", "level": 9, "price": 5000000, "passive_income": 50000, "servant_slots": 20, "maintenance": 10000},
+    10: {"name": "✨ Божественная резиденция", "level": 10, "price": 15000000, "passive_income": 150000, "servant_slots": 30, "maintenance": 30000},
+}
+
+# =============================================================================
+# ТИПЫ ПРИСЛУГИ
+# =============================================================================
+SERVANT_TYPES = {
+    "gardener": {
+        "name": "🌱 Садовник",
+        "description": "Увеличивает урожайность на 10% за уровень",
+        "base_salary": 50,
+        "max_level": 5,
+        "effect": "crop_yield",
+        "bonus_per_level": 0.10
+    },
+    "manager": {
+        "name": "💼 Управляющий",
+        "description": "Увеличивает пассивный доход на 15% за уровень",
+        "base_salary": 100,
+        "max_level": 5,
+        "effect": "passive_income",
+        "bonus_per_level": 0.15
+    },
+    "guard": {
+        "name": "🛡️ Охранник",
+        "description": "Защищает от краж (будущая функция)",
+        "base_salary": 75,
+        "max_level": 5,
+        "effect": "security",
+        "bonus_per_level": 0.05
+    },
+    "cook": {
+        "name": "👨‍🍳 Повар",
+        "description": "Уменьшает стоимость еды на 10% за уровень",
+        "base_salary": 60,
+        "max_level": 5,
+        "effect": "food_discount",
+        "bonus_per_level": 0.10
+    },
+    "merchant": {
+        "name": "💰 Торговец",
+        "description": "Скидка в магазине 5% за уровень",
+        "base_salary": 120,
+        "max_level": 5,
+        "effect": "shop_discount",
+        "bonus_per_level": 0.05
+    },
+    "alchemist": {
+        "name": "⚗️ Алхимик",
+        "description": "Ускоряет рост культур на 5% за уровень",
+        "base_salary": 150,
+        "max_level": 5,
+        "effect": "growth_speed",
+        "bonus_per_level": 0.05
+    }
+}
+
+# =============================================================================
+# МАТЕРИАЛЫ
+# =============================================================================
+MATERIALS = {
+    "wood": {"name": "🪵 Дерево", "price": 10, "description": "Основной строительный материал"},
+    "stone": {"name": "🪨 Камень", "price": 25, "description": "Прочный материал для строительства"},
+    "metal": {"name": "⚙️ Металл", "price": 50, "description": "Редкий материал для улучшений"},
+    "food": {"name": "🍞 Еда", "price": 5, "description": "Для кормления прислуги"},
+    "luxury": {"name": "💎 Роскошь", "price": 200, "description": "Элитный материал для дворцов"},
+}
+
+# =============================================================================
+# КОНТРАКТЫ НА ПРИСЛУГУ
+# =============================================================================
+SERVANT_CONTRACTS = {
+    "gardener_contract": {"name": "📜 Контракт садовника", "price": 500, "servant_type": "gardener"},
+    "manager_contract": {"name": "📜 Контракт управляющего", "price": 1000, "servant_type": "manager"},
+    "guard_contract": {"name": "📜 Контракт охранника", "price": 750, "servant_type": "guard"},
+    "cook_contract": {"name": "📜 Контракт повара", "price": 600, "servant_type": "cook"},
+    "merchant_contract": {"name": "📜 Контракт торговца", "price": 1200, "servant_type": "merchant"},
+    "alchemist_contract": {"name": "📜 Контракт алхимика", "price": 1500, "servant_type": "alchemist"},
+}
+
+# =============================================================================
+# УЛУЧШЕНИЯ ДЛЯ ДОМА
+# =============================================================================
+HOME_UPGRADES = {
+    "garden": {"name": "🌳 Сад", "price": 5000, "materials": {"wood": 100, "stone": 50}, "effect": "beauty", "bonus": 10},
+    "fountain": {"name": "⛲ Фонтан", "price": 10000, "materials": {"stone": 200, "metal": 50}, "effect": "beauty", "bonus": 25},
+    "library": {"name": "📚 Библиотека", "price": 15000, "materials": {"wood": 300, "luxury": 10}, "effect": "knowledge", "bonus": 15},
+    "treasury": {"name": "💰 Сокровищница", "price": 50000, "materials": {"metal": 500, "luxury": 50}, "effect": "income", "bonus": 0.20},
+    "training_ground": {"name": "🎯 Тренировочная площадка", "price": 20000, "materials": {"wood": 200, "stone": 200}, "effect": "servant_efficiency", "bonus": 0.10},
 }
 
 # =============================================================================
@@ -135,7 +224,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 pool = None
 
 # =============================================================================
-# МАГАЗИН ПРЕДМЕТОВ (ИСПРАВЛЕНО: убраны пробелы)
+# МАГАЗИН ПРЕДМЕТОВ
 # =============================================================================
 SHOP_ITEMS = {
     "auto_collect": {"name": "🔄 Авто-сбор", "price": 1000, "desc": "Без кулдауна", "type": "upgrade"},
@@ -196,42 +285,27 @@ async def init_db():
                     gifts_received INTEGER DEFAULT 0,
                     total_harvest INTEGER DEFAULT 0,
                     total_earned INTEGER DEFAULT 0,
-                    active_boosters TEXT DEFAULT '[]'
+                    active_boosters TEXT DEFAULT '[]',
+                    materials TEXT DEFAULT '{}',
+                    servants TEXT DEFAULT '{}',
+                    home_upgrades TEXT DEFAULT '[]',
+                    last_salary_payment INTEGER DEFAULT 0
                 )
             """)
             logging.info("Таблица users проверена!")
             
-            try:
-                await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS inventory TEXT DEFAULT '[]'")
-                logging.info("Колонка inventory добавлена/проверена!")
-            except Exception as e:
-                logging.info(f"Колонка inventory уже существует: {e}")
-            
-            try:
-                await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS active_boosters TEXT DEFAULT '[]'")
-                logging.info("Колонка active_boosters добавлена/проверена!")
-            except Exception as e:
-                logging.info(f"Колонка active_boosters уже существует: {e}")
-            
-            columns_to_add = [
-                ("farm_plots", "TEXT DEFAULT '[\"empty\",\"empty\",\"empty\"]'"),
-                ("tools", "TEXT DEFAULT '[]'"),
-                ("boosters", "TEXT DEFAULT '[]'"),
-                ("farm_level", "INTEGER DEFAULT 1"),
-                ("farm_xp", "INTEGER DEFAULT 0"),
-                ("house_level", "INTEGER DEFAULT 1"),
-                ("house_xp", "INTEGER DEFAULT 0"),
-                ("last_passive_claim", "INTEGER DEFAULT 0"),
-                ("gifts_sent", "INTEGER DEFAULT 0"),
-                ("gifts_received", "INTEGER DEFAULT 0"),
-                ("total_harvest", "INTEGER DEFAULT 0"),
-                ("total_earned", "INTEGER DEFAULT 0")
+            # Добавляем новые колонки если их нет
+            new_columns = [
+                ("materials", "TEXT DEFAULT '{}'"),
+                ("servants", "TEXT DEFAULT '{}'"),
+                ("home_upgrades", "TEXT DEFAULT '[]'"),
+                ("last_salary_payment", "INTEGER DEFAULT 0")
             ]
             
-            for col_name, col_type in columns_to_add:
+            for col_name, col_type in new_columns:
                 try:
                     await conn.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
-                    logging.info(f"Колонка {col_name} добавлена/проверена!")
+                    logging.info(f"Колонка {col_name} добавлена!")
                 except Exception as e:
                     logging.info(f"Колонка {col_name} уже существует: {e}")
         
@@ -239,6 +313,7 @@ async def init_db():
     except Exception as e:
         logging.error(f"Ошибка БД: {e}")
         raise
+
 # =============================================================================
 # ФУНКЦИИ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ
 # =============================================================================
@@ -254,11 +329,17 @@ async def get_user(user_id):
                     result['boosters'] = json.loads(row['boosters']) if row['boosters'] else []
                     result['inventory'] = json.loads(row['inventory']) if row['inventory'] else []
                     result['active_boosters'] = json.loads(row['active_boosters']) if row['active_boosters'] else []
+                    result['materials'] = json.loads(row['materials']) if row['materials'] else {}
+                    result['servants'] = json.loads(row['servants']) if row['servants'] else {}
+                    result['home_upgrades'] = json.loads(row['home_upgrades']) if row['home_upgrades'] else []
                 except:
                     result['farm_plots'] = ["empty"] * 3
                     result['boosters'] = []
                     result['inventory'] = []
                     result['active_boosters'] = []
+                    result['materials'] = {}
+                    result['servants'] = {}
+                    result['home_upgrades'] = []
                 return result
             return None
     except Exception as e:
@@ -293,9 +374,9 @@ async def add_user(user_id, ref_code=None, username=None):
                     inviter_id = inviter['user_id']
             
             await conn.execute(
-                "INSERT INTO users (user_id, ref_code, invited_by, username, farm_plots, tools, boosters, inventory, active_boosters) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (user_id) DO NOTHING",
+                "INSERT INTO users (user_id, ref_code, invited_by, username, farm_plots, tools, boosters, inventory, active_boosters, materials, servants, home_upgrades) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (user_id) DO NOTHING",
                 user_id, my_ref_code, inviter_id, username.lower() if username else None, 
-                '["empty","empty","empty"]', '[]', '[]', '[]', '[]'
+                '["empty","empty","empty"]', '[]', '[]', '[]', '[]', '{}', '{}', '[]'
             )
             
             if inviter_id:
@@ -419,6 +500,178 @@ async def get_booster_effect(user_id, effect_type):
             multiplier = max(multiplier, booster.get('bonus', 1.0))
     
     return multiplier
+
+# =============================================================================
+# ФУНКЦИИ ДЛЯ МАТЕРИАЛОВ
+# =============================================================================
+async def get_user_materials(user_id):
+    """Получение материалов пользователя"""
+    user = await get_user(user_id)
+    if not user:
+        return {}
+    return user.get('materials', {})
+
+async def add_material(user_id, material_id, quantity):
+    """Добавление материала"""
+    async with pool.acquire() as conn:
+        materials = await get_user_materials(user_id)
+        materials[material_id] = materials.get(material_id, 0) + quantity
+        
+        await conn.execute(
+            "UPDATE users SET materials = $1 WHERE user_id = $2",
+            json.dumps(materials), user_id
+        )
+
+async def buy_material(user_id, material_id, quantity):
+    """Покупка материала"""
+    material = MATERIALS.get(material_id)
+    if not material:
+        return False, "Материал не найден"
+    
+    user = await get_user(user_id)
+    total_cost = material['price'] * quantity
+    
+    if user['balance'] < total_cost:
+        return False, f"Недостаточно винограда! Нужно {total_cost}, у вас {user['balance']}"
+    
+    await add_material(user_id, material_id, quantity)
+    await update_balance(user_id, -total_cost)
+    
+    return True, f"Куплено {quantity} {material['name']} за {total_cost} 🍇"
+
+# =============================================================================
+# ФУНКЦИИ ДЛЯ ПРИСЛУГИ
+# =============================================================================
+async def get_user_servants(user_id):
+    """Получение прислуги пользователя"""
+    user = await get_user(user_id)
+    if not user:
+        return {}
+    return user.get('servants', {})
+
+async def hire_servant(user_id, servant_type):
+    """Наем прислуги"""
+    servant = SERVANT_TYPES.get(servant_type)
+    if not servant:
+        return False, "Тип прислуги не найден"
+    
+    user = await get_user(user_id)
+    house = HOUSES.get(user.get('house_level', 1))
+    
+    # Проверяем доступные слоты
+    current_servants = await get_user_servants(user_id)
+    total_servants = sum(current_servants.values())
+    
+    if total_servants >= house['servant_slots']:
+        return False, f"Недостаточно мест для прислуги! У вас {total_servants}/{house['servant_slots']}"
+    
+    async with pool.acquire() as conn:
+        servants = await get_user_servants(user_id)
+        current_level = servants.get(servant_type, 0)
+        
+        if current_level >= servant['max_level']:
+            return False, f"{servant['name']} уже на максимальном уровне!"
+        
+        # Стоимость найма увеличивается с уровнем
+        hire_cost = servant['base_salary'] * (current_level + 1) * 10
+        
+        if user['balance'] < hire_cost:
+            return False, f"Недостаточно винограда! Нужно {hire_cost}, у вас {user['balance']}"
+        
+        servants[servant_type] = current_level + 1
+        
+        await conn.execute(
+            "UPDATE users SET balance = balance - $1, servants = $2 WHERE user_id = $3",
+            hire_cost, json.dumps(servants), user_id
+        )
+    
+    return True, f"Нанят {servant['name']} {current_level + 1} уровня за {hire_cost} 🍇"
+
+async def calculate_servant_bonus(user_id, effect_type):
+    """Расчет бонуса от прислуги"""
+    servants = await get_user_servants(user_id)
+    total_bonus = 1.0
+    
+    for servant_type, level in servants.items():
+        servant = SERVANT_TYPES.get(servant_type)
+        if servant and servant['effect'] == effect_type:
+            bonus = servant['bonus_per_level'] * level
+            total_bonus += bonus
+    
+    return total_bonus
+
+async def pay_servant_salaries(user_id):
+    """Выплата зарплаты прислуге"""
+    servants = await get_user_servants(user_id)
+    if not servants:
+        return 0
+    
+    total_salary = 0
+    for servant_type, level in servants.items():
+        servant = SERVANT_TYPES.get(servant_type)
+        if servant:
+            salary = servant['base_salary'] * level
+            total_salary += salary
+    
+    if total_salary > 0:
+        user = await get_user(user_id)
+        if user['balance'] >= total_salary:
+            await update_balance(user_id, -total_salary)
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE users SET last_salary_payment = $1 WHERE user_id = $2",
+                    int(time.time()), user_id
+                )
+            return total_salary
+    
+    return 0
+
+# =============================================================================
+# ФУНКЦИИ ДЛЯ УЛУЧШЕНИЙ ДОМА
+# =============================================================================
+async def get_user_upgrades(user_id):
+    """Получение улучшений дома"""
+    user = await get_user(user_id)
+    if not user:
+        return []
+    return user.get('home_upgrades', [])
+
+async def buy_home_upgrade(user_id, upgrade_id):
+    """Покупка улучшения для дома"""
+    upgrade = HOME_UPGRADES.get(upgrade_id)
+    if not upgrade:
+        return False, "Улучшение не найдено"
+    
+    user = await get_user(user_id)
+    
+    # Проверяем материалы
+    materials = await get_user_materials(user_id)
+    for mat_id, quantity in upgrade['materials'].items():
+        if materials.get(mat_id, 0) < quantity:
+            mat = MATERIALS.get(mat_id)
+            return False, f"Недостаточно {mat['name']}! Нужно {quantity}, у вас {materials.get(mat_id, 0)}"
+    
+    if user['balance'] < upgrade['price']:
+        return False, f"Недостаточно винограда! Нужно {upgrade['price']}, у вас {user['balance']}"
+    
+    # Проверяем, не куплено ли уже
+    upgrades = await get_user_upgrades(user_id)
+    if upgrade_id in upgrades:
+        return False, "Это улучшение уже куплено!"
+    
+    async with pool.acquire() as conn:
+        # Списываем материалы
+        for mat_id, quantity in upgrade['materials'].items():
+            materials[mat_id] -= quantity
+        
+        upgrades.append(upgrade_id)
+        
+        await conn.execute(
+            "UPDATE users SET balance = balance - $1, materials = $2, home_upgrades = $3 WHERE user_id = $4",
+            upgrade['price'], json.dumps(materials), json.dumps(upgrades), user_id
+        )
+    
+    return True, f"Куплено улучшение {upgrade['name']}!"
 
 # =============================================================================
 # ФУНКЦИИ ФЕРМЫ
@@ -610,7 +863,7 @@ async def claim_passive_income(user_id):
                 break
         
         if not house:
-            house = HOUSES['tent']
+            house = HOUSES[1]
         
         now = int(time.time())
         hours_passed = (now - last_claim) // 3600
@@ -619,8 +872,9 @@ async def claim_passive_income(user_id):
             minutes_left = 60 - ((now - last_claim) // 60)
             return False, f"Доход через {minutes_left} мин"
         
+        # Рассчитываем бонусы от прислуги и улучшений
+        income_bonus = await calculate_servant_bonus(user_id, 'passive_income')
         base_income = house['passive_income'] * hours_passed
-        income_bonus = await get_booster_effect(user_id, 'passive_income')
         total_income = int(base_income * income_bonus)
         
         async with pool.acquire() as conn:
@@ -750,13 +1004,13 @@ async def cmd_start(message: Message):
                 f"Привет, {message.from_user.first_name}! 👋\n\n"
                 "🌟 Что ты можешь делать:\n"
                 "🌱 Выращивать виноград и другие культуры\n"
-                "🏠 Строить дома и получать пассивный доход\n"
+                "🏠 Строить дома с прислугой\n"
                 "🎁 Покупать подарки и обмениваться с друзьями\n"
                 "🏆 Соревноваться с другими игроками\n\n"
                 "📚 Быстрый старт:\n"
                 "1. ферма - посади культуры\n"
                 "2. сбор - собери виноград\n"
-                "3. магазин - купи улучшения\n\n"
+                "3. дом - улучши жильё\n\n"
                 "💡 Совет: Начинай с винограда - он растёт быстрее всего!\n\n"
                 "🎮 Основные команды:\n"
                 "помощь - полная справка по боту"
@@ -871,6 +1125,79 @@ async def cmd_collect(message: Message):
     except Exception as e:
         logging.error(f"Ошибка: {e}")
 
+@dp.message(F.text == "дом")
+async def cmd_house(message: Message):
+    """Обновленная команда дом"""
+    try:
+        user = await get_user(message.from_user.id)
+        if not user:
+            await message.answer("❌ Сначала старт")
+            return
+        
+        house_level = user.get('house_level', 1)
+        house = HOUSES.get(house_level)
+        balance = user.get('balance', 0)
+        
+        # Получаем прислугу
+        servants = await get_user_servants(message.from_user.id)
+        total_servants = sum(servants.values())
+        
+        # Получаем улучшения
+        upgrades = await get_user_upgrades(message.from_user.id)
+        
+        # Рассчитываем бонусы
+        income_bonus = await calculate_servant_bonus(message.from_user.id, 'passive_income')
+        final_income = int(house['passive_income'] * income_bonus)
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="💰 Забрать доход", callback_data="house_claim")
+        keyboard.button(text="🔨 Улучшить дом", callback_data="house_upgrade_menu")
+        keyboard.button(text="👥 Прислуга", callback_data="servants_menu")
+        keyboard.button(text="🏗️ Улучшения", callback_data="home_upgrades_menu")
+        keyboard.button(text="📊 Статистика", callback_data="house_stats")
+        keyboard.adjust(2)
+        
+        # Список прислуги
+        servants_text = ""
+        if servants:
+            for s_type, level in servants.items():
+                s = SERVANT_TYPES.get(s_type)
+                if s:
+                    servants_text += f"• {s['name']} ур. {level}\n"
+        else:
+            servants_text = "Нет прислуги"
+        
+        # Список улучшений
+        upgrades_text = ""
+        if upgrades:
+            for upg_id in upgrades:
+                upg = HOME_UPGRADES.get(upg_id)
+                if upg:
+                    upgrades_text += f"• {upg['name']}\n"
+        else:
+            upgrades_text = "Нет улучшений"
+        
+        text = (
+            f"🏠 **{house['name']}** (ур. {house_level})\n\n"
+            f"📊 **Характеристики:**\n"
+            f"💰 Пассивный доход: {final_income:,} 🍇/час\n"
+            f"👥 Прислуга: {total_servants}/{house['servant_slots']}\n"
+            f"🔧 Содержание: {house['maintenance']} 🍇/час\n\n"
+            f"👥 **Прислуга:**\n{servants_text}\n"
+            f"🏗️ **Улучшения:**\n{upgrades_text}\n\n"
+            f"💵 Ваш баланс: {balance:,} 🍇"
+        )
+        
+        # Следующий уровень
+        next_house = HOUSES.get(house_level + 1)
+        if next_house:
+            text += f"\n\n🔜 **След. уровень:** {next_house['name']}\n💰 Стоимость: {next_house['price']:,} 🍇"
+        
+        await message.answer(text, reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка cmd_house: {e}")
+        await message.answer("❌ Ошибка")
+
 @dp.message(F.text == "бустеры")
 async def cmd_boosters(message: Message):
     """Команда бустеры - магазин бустеров"""
@@ -914,38 +1241,57 @@ async def cmd_boosters(message: Message):
     except Exception as e:
         logging.error(f"Ошибка: {e}")
 
-@dp.message(F.text == "дом")
-async def cmd_house(message: Message):
-    """Команда дом"""
+@dp.message(F.text == "материалы")
+async def cmd_materials(message: Message):
+    """Магазин материалов"""
     try:
         user = await get_user(message.from_user.id)
         if not user:
             await message.answer("❌ Сначала старт")
             return
         
-        house_level = user.get('house_level', 1)
         balance = user.get('balance', 0)
-        
-        house = HOUSES.get('tent')
-        for h in HOUSES.values():
-            if h['level'] == house_level:
-                house = h
-                break
+        materials = await get_user_materials(message.from_user.id)
         
         keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="💰 Забрать", callback_data="house_claim")
-        keyboard.adjust(1)
+        
+        # Материалы
+        for mat_id, mat in MATERIALS.items():
+            keyboard.button(
+                text=f"{mat['name']} - {mat['price']} 🍇",
+                callback_data=f"buy_material_{mat_id}"
+            )
+        
+        # Контракты на прислугу
+        for contract_id, contract in SERVANT_CONTRACTS.items():
+            keyboard.button(
+                text=f"{contract['name']} - {contract['price']} 🍇",
+                callback_data=f"buy_contract_{contract_id}"
+            )
+        
+        keyboard.adjust(2)
+        keyboard.button(text="📦 Мой склад", callback_data="my_storage")
+        
+        # Показ материалов
+        materials_text = "\n**Ваш склад:**\n"
+        if materials:
+            for mat_id, qty in materials.items():
+                mat = MATERIALS.get(mat_id)
+                if mat and qty > 0:
+                    materials_text += f"• {mat['name']}: {qty}\n"
+        else:
+            materials_text += "Пусто"
         
         text = (
-            f"🏠 {house['name']}\n\n"
-            f"📊 Уровень: {house_level}\n"
-            f"💰 Доход: {house['passive_income']}/час\n"
-            f"💵 Баланс: {balance:,} 🍇"
+            f"🏪 **Магазин материалов**\n\n"
+            f"💰 Баланс: {balance:,} 🍇\n"
+            f"{materials_text}"
         )
         
         await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
-        logging.error(f"Ошибка: {e}")
+        logging.error(f"Ошибка cmd_materials: {e}")
+        await message.answer("❌ Ошибка")
 
 @dp.message(F.text == "подарки")
 async def cmd_gifts(message: Message):
@@ -1024,19 +1370,14 @@ async def cmd_help(message: Message):
     text = (
         "📚 Справка\n\n"
         "ферма - ваша ферма и грядки\n"
-        "посадить [номер] [культура] - посадить\n"
-        "собрать [номер] - собрать урожай\n"
-        "сбор - собрать виноград\n\n"
-        "дом - ваш дом и доход\n"
-        "бустеры - магазин ускорений\n\n"
+        "сбор - собрать виноград\n"
+        "дом - ваш дом и прислуга\n"
+        "материалы - магазин материалов\n"
         "подарки - магазин подарков\n"
         "инвентарь - ваши подарки\n"
-        "инвентарь @user - чужой инвентарь\n"
-        "передать @user предмет - подарить\n\n"
-        "баланс - ваш баланс и прогресс\n"
-        "магазин - улучшения и скины\n\n"
-        "топ - рейтинг игроков\n"
-        "статистика - статистика бота"
+        "баланс - ваш баланс\n"
+        "бустеры - магазин ускорений\n"
+        "помощь - эта справка"
     )
     await message.answer(text)
 
@@ -1282,6 +1623,140 @@ async def callback_buy_booster(callback: CallbackQuery):
     except Exception as e:
         logging.error(f"Ошибка: {e}")
 
+@dp.callback_query(lambda c: c.data.startswith("buy_material_"))
+async def callback_buy_material(callback: CallbackQuery):
+    """Покупка материала"""
+    try:
+        await callback.answer()
+        material_id = callback.data.replace("buy_material_", "")
+        
+        success, msg = await buy_material(callback.from_user.id, material_id, 1)
+        await callback.message.answer(msg)
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+
+@dp.callback_query(lambda c: c.data.startswith("buy_contract_"))
+async def callback_buy_contract(callback: CallbackQuery):
+    """Покупка контракта на прислугу"""
+    try:
+        await callback.answer()
+        contract_id = callback.data.replace("buy_contract_", "")
+        contract = SERVANT_CONTRACTS.get(contract_id)
+        
+        if not contract:
+            await callback.message.answer("❌ Контракт не найден")
+            return
+        
+        success, msg = await hire_servant(callback.from_user.id, contract['servant_type'])
+        await callback.message.answer(msg)
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+
+@dp.callback_query(lambda c: c.data == "servants_menu")
+async def callback_servants_menu(callback: CallbackQuery):
+    """Меню прислуги"""
+    try:
+        await callback.answer()
+        servants = await get_user_servants(callback.from_user.id)
+        
+        text = "👥 **Ваша прислуга**\n\n"
+        
+        if servants:
+            for s_type, level in servants.items():
+                s = SERVANT_TYPES.get(s_type)
+                if s:
+                    salary = s['base_salary'] * level
+                    text += (
+                        f"**{s['name']}** (ур. {level}/{s['max_level']})\n"
+                        f"📝 {s['description']}\n"
+                        f"💰 Зарплата: {salary} 🍇/час\n\n"
+                    )
+        else:
+            text += "У вас нет прислуги\n\n"
+            text += "💡 Купите контракты в /материалы"
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="◀️ Назад", callback_data="house_back")
+        
+        await callback.message.answer(text, reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка callback_servants_menu: {e}")
+
+@dp.callback_query(lambda c: c.data == "home_upgrades_menu")
+async def callback_home_upgrades_menu(callback: CallbackQuery):
+    """Меню улучшений дома"""
+    try:
+        await callback.answer()
+        upgrades = await get_user_upgrades(callback.from_user.id)
+        materials = await get_user_materials(callback.from_user.id)
+        
+        text = "🏗️ **Улучшения для дома**\n\n"
+        
+        keyboard = InlineKeyboardBuilder()
+        for upg_id, upg in HOME_UPGRADES.items():
+            if upg_id not in upgrades:
+                # Проверяем материалы
+                can_buy = True
+                materials_text = ""
+                for mat_id, qty in upg['materials'].items():
+                    mat = MATERIALS.get(mat_id)
+                    has = materials.get(mat_id, 0)
+                    materials_text += f"• {mat['name']}: {has}/{qty}\n"
+                    if has < qty:
+                        can_buy = False
+                
+                status = "✅" if can_buy else "❌"
+                keyboard.button(
+                    text=f"{status} {upg['name']} - {upg['price']} 🍇",
+                    callback_data=f"buy_home_upgrade_{upg_id}"
+                )
+        
+        if not keyboard.buttons:
+            text += "Все улучшения куплены!"
+        
+        keyboard.adjust(1)
+        keyboard.button(text="◀️ Назад", callback_data="house_back")
+        
+        await callback.message.answer(text, reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка callback_home_upgrades_menu: {e}")
+
+@dp.callback_query(lambda c: c.data.startswith("buy_home_upgrade_"))
+async def callback_buy_home_upgrade(callback: CallbackQuery):
+    """Покупка улучшения дома"""
+    try:
+        await callback.answer()
+        upgrade_id = callback.data.replace("buy_home_upgrade_", "")
+        
+        success, msg = await buy_home_upgrade(callback.from_user.id, upgrade_id)
+        await callback.message.answer(msg)
+    except Exception as e:
+        logging.error(f"Ошибка callback_buy_home_upgrade: {e}")
+
+@dp.callback_query(lambda c: c.data == "my_storage")
+async def callback_my_storage(callback: CallbackQuery):
+    """Просмотр склада"""
+    try:
+        await callback.answer()
+        materials = await get_user_materials(callback.from_user.id)
+        
+        text = "📦 **Ваш склад**\n\n"
+        
+        if materials:
+            for mat_id, qty in materials.items():
+                mat = MATERIALS.get(mat_id)
+                if mat and qty > 0:
+                    text += f"{mat['name']}: {qty}\n"
+        else:
+            text += "Пусто"
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="◀️ Назад", callback_data="materials_back")
+        
+        await callback.message.answer(text, reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка callback_my_storage: {e}")
+
 @dp.callback_query(lambda c: c.data.startswith("gift_"))
 async def callback_gift_buy(callback: CallbackQuery):
     """Покупка подарка"""
@@ -1347,6 +1822,7 @@ async def callback_buy(callback: CallbackQuery):
             return
         
         user = await get_user(callback.from_user.id)
+        
         if user['balance'] < item['price']:
             await callback.message.answer("❌ Недостаточно")
             return
