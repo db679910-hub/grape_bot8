@@ -240,38 +240,6 @@ async def init_db():
         logging.error(f"Ошибка БД: {e}")
         raise
 # =============================================================================
-# КОМАНДА СБРОСА (ТОЛЬКО ДЛЯ АДМИНА - БЕЗ СЛЭША)
-# =============================================================================
-
-ADMIN_USER_IDS = [2077080944]  # Замените на ваш числовой ID!
-
-@dp.message(F.text == "сброс")
-async def cmd_reset(message: Message):
-    """Сброс бота для всех пользователей (только админ)"""
-    try:
-        if message.from_user.id not in ADMIN_USER_IDS:
-            await message.answer("❌ Доступ только для администраторов!")
-            return
-        
-        async with pool.acquire() as conn:
-            # Удалить все данные
-            await conn.execute("TRUNCATE TABLE users RESTART IDENTITY CASCADE")
-            logging.warning(f"Админ {message.from_user.id} сбросил базу данных!")
-        
-        await message.answer(
-            "✅ **База данных сброшена!**\n\n"
-            "Все пользователи начнут с нуля.\n"
-            "Бот будет перезапущен..."
-        )
-        
-        # Перезапуск бота
-        import sys
-        os.execv(sys.executable, ['python'] + sys.argv)
-        
-    except Exception as e:
-        logging.error(f"Ошибка cmd_reset: {e}")
-        await message.answer(f"❌ Ошибка: {e}")
-# =============================================================================
 # ФУНКЦИИ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ
 # =============================================================================
 async def get_user(user_id):
