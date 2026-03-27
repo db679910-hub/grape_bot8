@@ -6,8 +6,8 @@ import asyncpg
 import random
 import string
 import json
-from aiogram import Bot, Dispatcher
-from aiogram.filters import Command, CommandStart
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -610,12 +610,12 @@ async def cmd_start(message: Message):
                 f"🎁 Покупать подарки и обмениваться с друзьями\n"
                 f"🏆 Соревноваться с другими игроками\n\n"
                 f"📚 Быстрый старт:\n"
-                f"1. /сбор - собери свой первый виноград\n"
-                f"2. /ферма - посади культуры\n"
-                f"3. /магазин - купи улучшения\n\n"
+                f"1. сбор - собери свой первый виноград\n"
+                f"2. ферма - посади культуры\n"
+                f"3. магазин - купи улучшения\n\n"
                 f"💡 Совет: Начинай с винограда - он растёт быстрее всего!\n\n"
                 f"🎮 Основные команды:\n"
-                f"/помощь - полная справка по боту"
+                f"помощь - полная справка по боту"
             )
             await message.answer(text)
         else:
@@ -624,13 +624,13 @@ async def cmd_start(message: Message):
         logging.error(f"Ошибка cmd_start: {e}")
         await message.answer("❌ Произошла ошибка. Попробуйте позже.")
 
-@dp.message(Command("ферма"))
+@dp.message(F.text == "ферма")
 async def cmd_farm(message: Message):
     try:
         user = await get_user(message.from_user.id)
         
         if not user:
-            await message.answer("❌ Сначала /start")
+            await message.answer("❌ Сначала старт")
             return
         
         plots = user.get('farm_plots', ["empty", "empty", "empty"])
@@ -684,7 +684,7 @@ async def cmd_farm(message: Message):
         logging.error(f"Ошибка cmd_farm: {e}")
         await message.answer("❌ Ошибка при загрузке фермы.")
 
-@dp.message(Command("сбор"))
+@dp.message(F.text == "сбор")
 async def cmd_collect(message: Message):
     try:
         user_id = message.from_user.id
@@ -761,14 +761,14 @@ async def cmd_collect(message: Message):
         logging.error(f"Ошибка cmd_collect: {e}")
         await message.answer("❌ Ошибка сбора. Попробуйте позже.")
 
-@dp.message(Command("дом"))
+@dp.message(F.text == "дом")
 async def cmd_house(message: Message):
     try:
         user_id = message.from_user.id
         user = await get_user(user_id)
         
         if not user:
-            await message.answer("❌ Сначала запустите бота /start")
+            await message.answer("❌ Сначала старт")
             return
         
         house_level = user.get('house_level', 1)
@@ -826,7 +826,7 @@ async def cmd_house(message: Message):
         logging.error(f"Ошибка cmd_house: {e}")
         await message.answer("❌ Ошибка при загрузке информации о доме.")
 
-@dp.message(Command("подарки"))
+@dp.message(F.text == "подарки")
 async def cmd_gifts(message: Message):
     try:
         user = await get_user(message.from_user.id)
@@ -850,7 +850,7 @@ async def cmd_gifts(message: Message):
             f"💡 Как использовать:\n"
             f"1. Выберите подарок из списка\n"
             f"2. Купите его\n"
-            f"3. Передайте другу командой /передать"
+            f"3. Передайте другу командой передать"
         )
         
         await message.answer(text, reply_markup=keyboard.as_markup())
@@ -858,7 +858,7 @@ async def cmd_gifts(message: Message):
         logging.error(f"Ошибка cmd_gifts: {e}")
         await message.answer("❌ Ошибка при загрузке магазина.")
 
-@dp.message(Command("инвентарь"))
+@dp.message(F.text == "инвентарь")
 async def cmd_inventory(message: Message):
     try:
         user_id = message.from_user.id
@@ -876,7 +876,7 @@ async def cmd_inventory(message: Message):
             text = (
                 "📦 Ваш инвентарь пуст\n\n"
                 "💡 Как получить подарки:\n"
-                "• Купите в /подарки\n"
+                "• Купите в подарки\n"
                 "• Получите от других игроков"
             )
             await message.answer(text)
@@ -903,7 +903,7 @@ async def cmd_inventory(message: Message):
             else:
                 text += f"❓ {item_id} x{count}\n"
         
-        text += f"\n💡 Используйте /передать @user предмет чтобы подарить"
+        text += f"\n💡 Используйте передать @user предмет чтобы подарить"
         
         await message.answer(text)
         logging.info("Инвентарь показан успешно")
@@ -914,7 +914,7 @@ async def cmd_inventory(message: Message):
         logging.error(traceback.format_exc())
         await message.answer("❌ Ошибка просмотра инвентаря")
 
-@dp.message(Command("бустеры"))
+@dp.message(F.text == "бустеры")
 async def cmd_boosters(message: Message):
     try:
         user = await get_user(message.from_user.id)
@@ -948,12 +948,12 @@ async def cmd_boosters(message: Message):
         logging.error(f"Ошибка cmd_boosters: {e}")
         await message.answer("❌ Ошибка при загрузке магазина бустеров.")
 
-@dp.message(Command("баланс"))
+@dp.message(F.text == "баланс")
 async def cmd_balance(message: Message):
     try:
         user = await get_user(message.from_user.id)
         if not user:
-            await message.answer("❌ Сначала запустите бота /start")
+            await message.answer("❌ Сначала старт")
             return
         
         balance = user.get('balance', 0)
@@ -972,9 +972,9 @@ async def cmd_balance(message: Message):
             f"🚜 Всего собрано урожаев: {total_harvest:,}\n"
             f"💵 Всего заработано: {total_earned:,} 🍇\n\n"
             f"💡 Что дальше?\n"
-            f"• /сбор - соберите виноград\n"
-            f"• /ферма - посадите культуры\n"
-            f"• /магазин - купите улучшения"
+            f"• сбор - соберите виноград\n"
+            f"• ферма - посадите культуры\n"
+            f"• магазин - купите улучшения"
         )
         
         await message.answer(text)
@@ -982,7 +982,7 @@ async def cmd_balance(message: Message):
         logging.error(f"Ошибка cmd_balance: {e}")
         await message.answer("❌ Ошибка при загрузке баланса.")
 
-@dp.message(Command("магазин"))
+@dp.message(F.text == "магазин")
 async def cmd_shop(message: Message):
     try:
         user = await get_user(message.from_user.id)
@@ -1017,47 +1017,47 @@ async def cmd_shop(message: Message):
         logging.error(f"Ошибка cmd_shop: {e}")
         await message.answer("❌ Ошибка при загрузке магазина.")
 
-@dp.message(Command("помощь"))
+@dp.message(F.text == "помощь")
 async def cmd_help(message: Message):
     text = (
         f"📚 Справка по боту\n\n"
         
         f"🌾 ФЕРМА:\n"
-        f"/ферма - ваша ферма и грядки\n"
-        f"/посадить [номер] [культура] - посадить\n"
-        f"/собрать [номер] - собрать урожай\n"
-        f"/сбор - собрать виноград\n\n"
+        f"ферма - ваша ферма и грядки\n"
+        f"посадить [номер] [культура] - посадить\n"
+        f"собрать [номер] - собрать урожай\n"
+        f"сбор - собрать виноград\n\n"
         
         f"🏠 ДОМ:\n"
-        f"/дом - ваш дом и доход\n"
-        f"/бустеры - магазин ускорений\n\n"
+        f"дом - ваш дом и доход\n"
+        f"бустеры - магазин ускорений\n\n"
         
         f"🎁 ПОДАРКИ:\n"
-        f"/подарки - магазин подарков\n"
-        f"/инвентарь - ваши подарки\n"
-        f"/инвентарь @user - чужой инвентарь\n"
-        f"/передать @user предмет - подарить\n\n"
+        f"подарки - магазин подарков\n"
+        f"инвентарь - ваши подарки\n"
+        f"инвентарь @user - чужой инвентарь\n"
+        f"передать @user предмет - подарить\n\n"
         
         f"💰 БАЛАНС И МАГАЗИН:\n"
-        f"/баланс - ваш баланс и прогресс\n"
-        f"/магазин - улучшения и скины\n\n"
+        f"баланс - ваш баланс и прогресс\n"
+        f"магазин - улучшения и скины\n\n"
         
         f"👥 СООБЩЕСТВО:\n"
-        f"/топ - рейтинг игроков\n"
-        f"/статистика - статистика бота\n\n"
+        f"топ - рейтинг игроков\n"
+        f"статистика - статистика бота\n\n"
         
         f"💡 Советы:\n"
-        f"• Начинайте с /сбор\n"
-        f"• Сажайте культуры на /ферма\n"
-        f"• Покупайте улучшения в /магазин\n"
-        f"• Стройте дом в /дом\n"
+        f"• Начинайте с сбор\n"
+        f"• Сажайте культуры на ферма\n"
+        f"• Покупайте улучшения в магазин\n"
+        f"• Стройте дом в дом\n"
         f"• Общайтесь с другими игроками!\n\n"
         
         f"🎮 Удачи на ферме! 🍇"
     )
     await message.answer(text)
 
-@dp.message(Command("топ"))
+@dp.message(F.text == "топ")
 async def cmd_top(message: Message):
     try:
         top = await get_top_users(10)
@@ -1084,7 +1084,7 @@ async def cmd_top(message: Message):
         logging.error(f"Ошибка cmd_top: {e}")
         await message.answer("❌ Ошибка при загрузке рейтинга.")
 
-@dp.message(Command("статистика"))
+@dp.message(F.text == "статистика")
 async def cmd_stats(message: Message):
     try:
         total = await get_total_users()
@@ -1102,6 +1102,210 @@ async def cmd_stats(message: Message):
     except Exception as e:
         logging.error(f"Ошибка cmd_stats: {e}")
         await message.answer("❌ Ошибка при загрузке статистики.")
+
+@dp.message(F.text.startswith("посадить"))
+async def cmd_plant(message: Message):
+    try:
+        args = message.text.split()
+        logging.info(f"Команда посадить: {args}")
+        
+        if len(args) < 3:
+            await message.answer(
+                "🌱 Использование:\n"
+                "посадить [номер грядки] [культура]\n\n"
+                "Примеры:\n"
+                "посадить 1 grape\n"
+                "посадить 2 strawberry\n\n"
+                f"Доступные культуры: {', '.join(CROPS.keys())}"
+            )
+            return
+        
+        try:
+            plot_index = int(args[1]) - 1
+        except ValueError:
+            await message.answer("❌ Номер грядки должен быть числом!")
+            return
+        
+        crop_id = args[2]
+        
+        logging.info(f"Посадка: грядка {plot_index + 1}, культура {crop_id}")
+        
+        if crop_id not in CROPS:
+            await message.answer(
+                f"❌ Культура не найдена!\n\n"
+                f"Доступные культуры:\n" + 
+                "\n".join([f"{cid} - {c['name']}" for cid, c in CROPS.items()])
+            )
+            return
+        
+        success, msg = await plant_crop(message.from_user.id, plot_index, crop_id)
+        
+        logging.info(f"Результат посадки: {success}, {msg}")
+        await message.answer(msg)
+        
+    except Exception as e:
+        logging.error(f"Ошибка cmd_plant: {e}")
+        await message.answer(f"❌ Ошибка: {str(e)}")
+
+@dp.message(F.text.startswith("собрать"))
+async def cmd_harvest(message: Message):
+    try:
+        args = message.text.split()
+        if len(args) < 2:
+            await message.answer("🚜 собрать [грядка]\nПример: собрать 1")
+            return
+        
+        plot_index = int(args[1]) - 1
+        success, msg = await harvest_crop(message.from_user.id, plot_index)
+        await message.answer(f"{'✅' if success else '⏳'} {msg}")
+    except Exception as e:
+        logging.error(f"Ошибка cmd_harvest: {e}")
+        await message.answer("❌ Ошибка.")
+
+@dp.message(F.text.startswith("передать"))
+async def cmd_transfer_gift(message: Message):
+    try:
+        args = message.text.split()
+        
+        if len(args) < 3:
+            text = (
+                "🎁 Передача подарка\n\n"
+                "📝 Использование:\n"
+                "передать @username предмет\n\n"
+                "📌 Примеры:\n"
+                "передать @friend chocolate\n"
+                "передать @friend car\n\n"
+                "💡 Доступные предметы:\n"
+            )
+            
+            for gid, g in list(GIFT_CATALOG.items())[:5]:
+                text += f"• {gid} - {g['name']}\n"
+            text += "... и другие\n\n"
+            text += "💡 Посмотрите все в инвентарь"
+            
+            await message.answer(text)
+            return
+        
+        target_username = args[1].replace('@', '')
+        item_id = args[2]
+        
+        item = GIFT_CATALOG.get(item_id)
+        if not item:
+            await message.answer(
+                f"❌ Предмет не найден!\n\n"
+                f"💡 Используйте инвентарь чтобы посмотреть ваши предметы"
+            )
+            return
+        
+        sender_id = message.from_user.id
+        sender = await get_user(sender_id)
+        
+        if not sender:
+            await message.answer("❌ Ошибка: вы не зарегистрированы. Используйте старт")
+            return
+        
+        sender_inventory = sender.get('inventory', [])
+        
+        item_found = False
+        item_index = -1
+        
+        for i, inv_item in enumerate(sender_inventory):
+            if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
+                item_found = True
+                item_index = i
+                break
+        
+        if not item_found:
+            await message.answer(
+                f"❌ У вас нет предмета!\n\n"
+                f"💡 Купите в подарки или получите от друга"
+            )
+            return
+        
+        recipient = await get_user_by_username(target_username)
+        
+        if not recipient:
+            await message.answer(
+                f"❌ Пользователь @{target_username} не найден!\n\n"
+                f"💡 Проверьте правильность username"
+            )
+            return
+        
+        if recipient['user_id'] == sender_id:
+            await message.answer("❌ Нельзя передать подарок самому себе!")
+            return
+        
+        try:
+            async with pool.acquire() as conn:
+                if sender_inventory[item_index].get('quantity', 1) > 1:
+                    sender_inventory[item_index]['quantity'] -= 1
+                else:
+                    sender_inventory.pop(item_index)
+                
+                await conn.execute(
+                    "UPDATE users SET inventory = $1 WHERE user_id = $2",
+                    json.dumps(sender_inventory),
+                    sender_id
+                )
+                
+                recipient_inventory = recipient.get('inventory', [])
+                
+                found = False
+                for inv_item in recipient_inventory:
+                    if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
+                        inv_item['quantity'] = inv_item.get('quantity', 1) + 1
+                        found = True
+                        break
+                
+                if not found:
+                    recipient_inventory.append({"item_id": item_id, "quantity": 1})
+                
+                await conn.execute(
+                    "UPDATE users SET inventory = $1 WHERE user_id = $2",
+                    json.dumps(recipient_inventory),
+                    recipient['user_id']
+                )
+                
+                await conn.execute(
+                    "UPDATE users SET gifts_sent = gifts_sent + 1 WHERE user_id = $1",
+                    sender_id
+                )
+                await conn.execute(
+                    "UPDATE users SET gifts_received = gifts_received + 1 WHERE user_id = $1",
+                    recipient['user_id']
+                )
+        
+        except Exception as db_error:
+            logging.error(f"Ошибка базы данных при передаче: {db_error}")
+            await message.answer("❌ Ошибка при передаче. Попробуйте позже.")
+            return
+        
+        sender_name = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
+        
+        text = (
+            f"✅ Подарок передан!\n\n"
+            f"🎁 Предмет: {item['name']}\n"
+            f"👤 Получатель: @{target_username}\n"
+            f"💝 От: {sender_name}\n\n"
+            f"Подарок успешно доставлен! 🎉"
+        )
+        
+        await message.answer(text)
+        
+        try:
+            await bot.send_message(
+                recipient['user_id'],
+                f"🎁 Вам передали подарок!\n\n"
+                f"📦 Предмет: {item['name']}\n"
+                f"👤 От: {sender_name}\n\n"
+                f"инвентарь - посмотреть подарки"
+            )
+        except:
+            pass
+        
+    except Exception as e:
+        logging.error(f"Ошибка cmd_transfer_gift: {e}")
+        await message.answer("❌ Ошибка передачи подарка")
 
 @dp.callback_query(lambda c: c.data.startswith("gift_"))
 async def callback_gift_buy(callback: CallbackQuery):
@@ -1154,7 +1358,7 @@ async def callback_gift_buy(callback: CallbackQuery):
                 f"✅ {item['name']} куплен!\n\n"
                 f"Списано: {price} 🍇\n"
                 f"Остаток: {new_balance} 🍇\n"
-                f"/инвентарь - посмотреть подарки"
+                f"инвентарь - посмотреть подарки"
             )
             logging.info("Покупка успешна!")
         else:
@@ -1273,7 +1477,7 @@ async def callback_plant_to_plot(callback: CallbackQuery):
                 f"🌱 {crop['name']}\n"
                 f"📍 Грядка: {plot_index + 1}\n"
                 f"⏱ Созреет через: {crop['growth_time'] // 3600} ч\n\n"
-                f"/ферма — посмотреть"
+                f"ферма — посмотреть"
             )
         else:
             await callback.message.answer(f"❌ {msg}")
@@ -1335,210 +1539,6 @@ async def callback_house(callback: CallbackQuery):
         await callback.answer()
     except Exception as e:
         logging.error(f"Ошибка callback_house: {e}")
-
-@dp.message(Command("посадить"))
-async def cmd_plant(message: Message):
-    try:
-        args = message.text.split()
-        logging.info(f"Команда /посадить: {args}")
-        
-        if len(args) < 3:
-            await message.answer(
-                "🌱 Использование:\n"
-                "/посадить [номер грядки] [культура]\n\n"
-                "Примеры:\n"
-                "/посадить 1 grape\n"
-                "/посадить 2 strawberry\n\n"
-                f"Доступные культуры: {', '.join(CROPS.keys())}"
-            )
-            return
-        
-        try:
-            plot_index = int(args[1]) - 1
-        except ValueError:
-            await message.answer("❌ Номер грядки должен быть числом!")
-            return
-        
-        crop_id = args[2]
-        
-        logging.info(f"Посадка: грядка {plot_index + 1}, культура {crop_id}")
-        
-        if crop_id not in CROPS:
-            await message.answer(
-                f"❌ Культура не найдена!\n\n"
-                f"Доступные культуры:\n" + 
-                "\n".join([f"{cid} - {c['name']}" for cid, c in CROPS.items()])
-            )
-            return
-        
-        success, msg = await plant_crop(message.from_user.id, plot_index, crop_id)
-        
-        logging.info(f"Результат посадки: {success}, {msg}")
-        await message.answer(msg)
-        
-    except Exception as e:
-        logging.error(f"Ошибка cmd_plant: {e}")
-        await message.answer(f"❌ Ошибка: {str(e)}")
-
-@dp.message(Command("собрать"))
-async def cmd_harvest(message: Message):
-    try:
-        args = message.text.split()
-        if len(args) < 2:
-            await message.answer("🚜 /собрать [грядка]\nПример: /собрать 1")
-            return
-        
-        plot_index = int(args[1]) - 1
-        success, msg = await harvest_crop(message.from_user.id, plot_index)
-        await message.answer(f"{'✅' if success else '⏳'} {msg}")
-    except Exception as e:
-        logging.error(f"Ошибка cmd_harvest: {e}")
-        await message.answer("❌ Ошибка.")
-
-@dp.message(Command("передать"))
-async def cmd_transfer_gift(message: Message):
-    try:
-        args = message.text.split()
-        
-        if len(args) < 3:
-            text = (
-                "🎁 Передача подарка\n\n"
-                "📝 Использование:\n"
-                "/передать @username предмет\n\n"
-                "📌 Примеры:\n"
-                "/передать @friend chocolate\n"
-                "/передать @friend car\n\n"
-                "💡 Доступные предметы:\n"
-            )
-            
-            for gid, g in list(GIFT_CATALOG.items())[:5]:
-                text += f"• {gid} - {g['name']}\n"
-            text += "... и другие\n\n"
-            text += "💡 Посмотрите все в /инвентарь"
-            
-            await message.answer(text)
-            return
-        
-        target_username = args[1].replace('@', '')
-        item_id = args[2]
-        
-        item = GIFT_CATALOG.get(item_id)
-        if not item:
-            await message.answer(
-                f"❌ Предмет не найден!\n\n"
-                f"💡 Используйте /инвентарь чтобы посмотреть ваши предметы"
-            )
-            return
-        
-        sender_id = message.from_user.id
-        sender = await get_user(sender_id)
-        
-        if not sender:
-            await message.answer("❌ Ошибка: вы не зарегистрированы. Используйте /start")
-            return
-        
-        sender_inventory = sender.get('inventory', [])
-        
-        item_found = False
-        item_index = -1
-        
-        for i, inv_item in enumerate(sender_inventory):
-            if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
-                item_found = True
-                item_index = i
-                break
-        
-        if not item_found:
-            await message.answer(
-                f"❌ У вас нет предмета!\n\n"
-                f"💡 Купите в /подарки или получите от друга"
-            )
-            return
-        
-        recipient = await get_user_by_username(target_username)
-        
-        if not recipient:
-            await message.answer(
-                f"❌ Пользователь @{target_username} не найден!\n\n"
-                f"💡 Проверьте правильность username"
-            )
-            return
-        
-        if recipient['user_id'] == sender_id:
-            await message.answer("❌ Нельзя передать подарок самому себе!")
-            return
-        
-        try:
-            async with pool.acquire() as conn:
-                if sender_inventory[item_index].get('quantity', 1) > 1:
-                    sender_inventory[item_index]['quantity'] -= 1
-                else:
-                    sender_inventory.pop(item_index)
-                
-                await conn.execute(
-                    "UPDATE users SET inventory = $1 WHERE user_id = $2",
-                    json.dumps(sender_inventory),
-                    sender_id
-                )
-                
-                recipient_inventory = recipient.get('inventory', [])
-                
-                found = False
-                for inv_item in recipient_inventory:
-                    if isinstance(inv_item, dict) and inv_item.get('item_id') == item_id:
-                        inv_item['quantity'] = inv_item.get('quantity', 1) + 1
-                        found = True
-                        break
-                
-                if not found:
-                    recipient_inventory.append({"item_id": item_id, "quantity": 1})
-                
-                await conn.execute(
-                    "UPDATE users SET inventory = $1 WHERE user_id = $2",
-                    json.dumps(recipient_inventory),
-                    recipient['user_id']
-                )
-                
-                await conn.execute(
-                    "UPDATE users SET gifts_sent = gifts_sent + 1 WHERE user_id = $1",
-                    sender_id
-                )
-                await conn.execute(
-                    "UPDATE users SET gifts_received = gifts_received + 1 WHERE user_id = $1",
-                    recipient['user_id']
-                )
-        
-        except Exception as db_error:
-            logging.error(f"Ошибка базы данных при передаче: {db_error}")
-            await message.answer("❌ Ошибка при передаче. Попробуйте позже.")
-            return
-        
-        sender_name = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
-        
-        text = (
-            f"✅ Подарок передан!\n\n"
-            f"🎁 Предмет: {item['name']}\n"
-            f"👤 Получатель: @{target_username}\n"
-            f"💝 От: {sender_name}\n\n"
-            f"Подарок успешно доставлен! 🎉"
-        )
-        
-        await message.answer(text)
-        
-        try:
-            await bot.send_message(
-                recipient['user_id'],
-                f"🎁 Вам передали подарок!\n\n"
-                f"📦 Предмет: {item['name']}\n"
-                f"👤 От: {sender_name}\n\n"
-                f"/инвентарь - посмотреть подарки"
-            )
-        except:
-            pass
-        
-    except Exception as e:
-        logging.error(f"Ошибка cmd_transfer_gift: {e}")
-        await message.answer("❌ Ошибка передачи подарка")
 
 @dp.callback_query(lambda c: c.data.startswith("buy_booster_"))
 async def callback_buy_booster(callback: CallbackQuery):
