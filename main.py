@@ -48,7 +48,7 @@ CROPS = {
 }
 
 # =============================================================================
-# УЛУЧШЕНИЯ ФЕРМЫ (ВЫСОКИЕ ЦЕНЫ, МАКСИМУМ 15 ГРЯДОК)
+# УЛУЧШЕНИЯ ФЕРМЫ (МАКСИМУМ 15 ГРЯДОК, ВЫСОКИЕ ЦЕНЫ)
 # =============================================================================
 FARM_UPGRADES = {
     1: {"level": 1, "plots": 3, "upgrade_cost": 0},
@@ -791,12 +791,8 @@ async def cmd_farm(message: Message):
         
         for i, plot in enumerate(plots):
             if plot == "empty" or not plot or not isinstance(plot, dict):
-                # Пустая грядка
                 grid_text += f"{i+1}. 🟫 Пусто\n"
-                keyboard.button(
-                    text=f"🟫 Грядка {i+1}",
-                    callback_data=f"plot_empty_{i}"
-                )
+                keyboard.button(text=f"🟫 Грядка {i+1}", callback_data=f"plot_empty_{i}")
             else:
                 crop = CROPS.get(plot.get('crop'))
                 if crop:
@@ -805,34 +801,24 @@ async def cmd_farm(message: Message):
                     ready_time = planted + growth_time
                     
                     if now >= ready_time:
-                        # Готово к сбору
                         grid_text += f"{i+1}. {crop['name']} ✅\n"
-                        keyboard.button(
-                            text=f"✅ {crop['name']} ({i+1})",
-                            callback_data=f"plot_ready_{i}"
-                        )
+                        keyboard.button(text=f"✅ {crop['name']} ({i+1})", callback_data=f"plot_ready_{i}")
                     else:
-                        # Ещё растёт - показываем время
                         remaining = ready_time - now
                         h = remaining // 3600
                         m = (remaining % 3600) // 60
-                        grid_text += f"{i+1}. {crop['name']} ⏳{h}ч{m}м\n"
-                        keyboard.button(
-                            text=f"⏳ Грядка {i+1}",
-                            callback_data=f"plot_growing_{i}"
-                        )
+                        s = remaining % 60
+                        grid_text += f"{i+1}. {crop['name']} ⏳{h}ч{m}м{s}с\n"
+                        keyboard.button(text=f"⏳ Грядка {i+1}", callback_data=f"plot_growing_{i}")
         
-        # Кнопки управления фермой
         keyboard.button(text="🌱 Посадить", callback_data="farm_plant")
         keyboard.button(text="🚜 Улучшить ферму", callback_data="farm_upgrade")
         keyboard.button(text="📊 Инфо", callback_data="farm_stats")
         keyboard.button(text="🔄 Обновить", callback_data="farm_refresh")
         keyboard.adjust(2)
         
-        # Статистика грядок
         empty_plots = sum(1 for p in plots if p == "empty" or not p or not isinstance(p, dict))
         ready_plots = sum(1 for i, p in enumerate(plots) if isinstance(p, dict) and CROPS.get(p.get('crop')) and now >= p.get('planted_at', 0) + p.get('growth_time', CROPS.get(p.get('crop'))['growth_time']))
-        growing_plots = len(plots) - empty_plots - ready_plots
         
         upgrade_info = FARM_UPGRADES.get(farm_level + 1)
         upgrade_text = f"\n🔜 След. уровень: {upgrade_info['upgrade_cost']:,} 🍇" if upgrade_info else ""
@@ -843,7 +829,7 @@ async def cmd_farm(message: Message):
             f"📍 Грядки ({len(plots)} шт):\n"
             f"🟫 Пустых: {empty_plots}\n"
             f"✅ Готово: {ready_plots}\n"
-            f"⏳ Растёт: {growing_plots}\n\n"
+            f"⏳ Растёт: {len(plots) - empty_plots - ready_plots}\n\n"
             f"💡 Нажмите на грядку!"
         )
         
@@ -1136,7 +1122,34 @@ async def callback_plot_action(callback: CallbackQuery):
             await cmd_farm(callback.message)
         
         elif action == "growing":
-            await callback.message.answer("⏳ Культура ещё растёт...")
+            user = await get_user(callback.from_user.id)
+            plots = user.get('farm_plots', [])
+            plot = plots[plot_index]
+            crop = CROPS.get(plot.get('crop'))
+            
+            if crop:
+                planted = plot.get('planted_at', 0)
+                growth_time = plot.get('growth_time', crop['growth_time'])
+                ready_time = planted + growth_time
+                remaining = ready_time - int(time.time())
+                
+                h = remaining // 3600
+                m = (remaining % 3600) // 60
+                s = remaining % 60
+                
+                keyboard = InlineKeyboardBuilder()
+                keyboard.button(text="◀️ Назад", callback_data="farm_back")
+                
+                text = (
+                    f"🌱 **Грядка {plot_index + 1}**\n\n"
+                    f"📦 Культура: {crop['name']}\n"
+                    f"⏱ Осталось: {h}ч {m}м {s}с\n"
+                    f"💰 Награда: {crop['reward']} 🍇\n"
+                    f"⭐ XP: {crop['xp']}\n\n"
+                    f"💡 Дождитесь созревания!"
+                )
+                
+                await callback.message.answer(text, reply_markup=keyboard.as_markup())
     
     except Exception as e:
         logging.error(f"Ошибка: {e}")
@@ -1198,7 +1211,7 @@ async def callback_select_crop(callback: CallbackQuery):
 
 @dp.callback_query(lambda c: c.data == "farm_upgrade")
 async def callback_farm_upgrade(callback: CallbackQuery):
-    """Обработчик улучшения фермы"""
+    """Улучшение фермы"""
     try:
         await callback.answer()
         success, msg = await upgrade_farm(callback.from_user.id)
@@ -1239,16 +1252,6 @@ async def callback_farm_back(callback: CallbackQuery):
     """Кнопка назад"""
     try:
         await callback.answer()
-        await callback.message.delete()
-        await cmd_farm(callback.message)
-    except Exception as e:
-        logging.error(f"Ошибка: {e}")
-
-@dp.callback_query(lambda c: c.data == "farm_refresh")
-async def callback_farm_refresh(callback: CallbackQuery):
-    """Обновление фермы"""
-    try:
-        await callback.answer("🔄 Обновляю...")
         await callback.message.delete()
         await cmd_farm(callback.message)
     except Exception as e:
