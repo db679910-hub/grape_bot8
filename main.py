@@ -243,7 +243,7 @@ async def init_db():
 # КОМАНДА СБРОСА (ТОЛЬКО ДЛЯ АДМИНА - БЕЗ СЛЭША)
 # =============================================================================
 
-ADMIN_USER_IDS = [2077080944]  # Ваши Telegram ID
+ADMIN_USER_IDS = [2077080944]  # Замените на ваш числовой ID!
 
 @dp.message(F.text == "сброс")
 async def cmd_reset(message: Message):
