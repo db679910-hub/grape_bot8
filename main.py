@@ -628,61 +628,324 @@ async def cmd_start(message: Message):
 async def cmd_farm(message: Message):
     try:
         user = await get_user(message.from_user.id)
-        
         if not user:
-            await message.answer("❌ Сначала старт")
+            await message.answer("❌ Сначала нажмите старт")
             return
         
-        plots = user.get('farm_plots', ["empty", "empty", "empty"])
+        plots = user.get('farm_plots', ["empty"] * 3)
         farm_level = user.get('farm_level', 1)
-        farm_xp = user.get('farm_xp', 0)
         balance = user.get('balance', 0)
-        
         now = int(time.time())
         
+        # Создаём кнопки для каждой грядки
+        keyboard = InlineKeyboardBuilder()
         grid_text = ""
+        
         for i, plot in enumerate(plots):
-            grid_text += f"Грядка {i+1}: "
-            
             if plot == "empty" or not plot or not isinstance(plot, dict):
-                grid_text += "🟫 Пусто\n"
+                # Пустая грядка
+                grid_text += f"{i+1}. 🟫 Пусто\n"
+                keyboard.button(
+                    text=f"🟫 Грядка {i+1}",
+                    callback_data=f"plot_empty_{i}"
+                )
             else:
                 crop = CROPS.get(plot.get('crop'))
                 if crop:
-                    planted = plot.get('planted_at', 0)
-                    growth_time = crop['growth_time']
-                    ready_time = planted + growth_time
-                    
+                    ready_time = plot.get('planted_at', 0) + crop['growth_time']
                     if now >= ready_time:
-                        grid_text += f"{crop['name']} ✅ Готово!\n"
+                        # Готово к сбору
+                        grid_text += f"{i+1}. {crop['name']} ✅\n"
+                        keyboard.button(
+                            text=f"✅ {crop['name']} ({i+1})",
+                            callback_data=f"plot_ready_{i}"
+                        )
                     else:
+                        # Ещё растёт
                         remaining = ready_time - now
-                        hours = remaining // 3600
-                        minutes = (remaining % 3600) // 60
-                        grid_text += f"{crop['name']} ⏳ {hours}ч {minutes}м\n"
-                else:
-                    grid_text += "🟫 Пусто\n"
+                        h = remaining // 3600
+                        m = (remaining % 3600) // 60
+                        grid_text += f"{i+1}. {crop['name']} ⏳{h}ч{m}м\n"
+                        keyboard.button(
+                            text=f"⏳ Грядка {i+1}",
+                            callback_data=f"plot_growing_{i}"
+                        )
         
-        keyboard = InlineKeyboardBuilder()
+        # Основные кнопки управления
         keyboard.button(text="🌱 Посадить культуру", callback_data="farm_plant")
         keyboard.button(text="🚜 Улучшить ферму", callback_data="farm_upgrade")
         keyboard.button(text="📊 Информация", callback_data="farm_stats")
-        keyboard.adjust(2)
+        keyboard.button(text="🔄 Обновить", callback_data="farm_refresh")
+        
+        keyboard.adjust(2)  # 2 кнопки в ряд
+        
+        # Статистика
+        empty_plots = sum(1 for p in plots if p == "empty" or not p or not isinstance(p, dict))
+        ready_plots = sum(1 for i, p in enumerate(plots) if isinstance(p, dict) and CROPS.get(p.get('crop')) and now >= p.get('planted_at', 0) + CROPS.get(p.get('crop'))['growth_time'])
         
         text = (
-            f"🌾 Ваша ферма\n\n"
-            f"👤 Уровень фермы: {farm_level}\n"
-            f"✨ Опыт: {farm_xp}\n"
+            f"🌾 **ВАША ФЕРМА** 🌾\n\n"
+            f"👤 Уровень: {farm_level}\n"
             f"💰 Баланс: {balance:,} 🍇\n\n"
-            f"Ваши грядки:\n"
-            f"{grid_text}\n"
-            f"💡 Нажмите на кнопку, чтобы начать!"
+            f"📍 **Грядки:** ({len(plots)} шт)\n"
+            f"────────────────\n"
+            f"🟫 Пустых: {empty_plots}\n"
+            f"✅ Готово: {ready_plots}\n"
+            f"⏳ Растёт: {len(plots) - empty_plots - ready_plots}\n\n"
+            f"💡 Нажмите на грядку для действия!"
         )
         
         await message.answer(text, reply_markup=keyboard.as_markup())
     except Exception as e:
         logging.error(f"Ошибка cmd_farm: {e}")
         await message.answer("❌ Ошибка при загрузке фермы.")
+
+# Обработчик действий с грядками
+@dp.callback_query(lambda c: c.data.startswith("plot_"))
+async def callback_plot_action(callback: CallbackQuery):
+    try:
+        await callback.answer()
+        parts = callback.data.split("_")
+        action = parts[1]  # empty, ready, growing
+        plot_index = int(parts[2])
+        
+        if action == "empty":
+            # Показываем меню посадки для этой грядки
+            keyboard = InlineKeyboardBuilder()
+            for crop_id, crop in CROPS.items():
+                keyboard.button(
+                    text=f"{crop['name']} - {crop['cost']} 🍇",
+                    callback_data=f"plant_to_{crop_id}_{plot_index}"
+                )
+            keyboard.adjust(2)
+            keyboard.button(text="◀️ Назад", callback_data="farm_back")
+            
+            await callback.message.answer(
+                f"🌱 **Посадка на грядку {plot_index + 1}**\n\n"
+                f"Выберите культуру:",
+                reply_markup=keyboard.as_markup()
+            )
+        
+        elif action == "ready":
+            # Собираем урожай
+            success, msg = await harvest_crop(callback.from_user.id, plot_index)
+            await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
+            
+            # Обновляем ферму
+            await callback.message.delete()
+            await cmd_farm(callback.message)
+        
+        elif action == "growing":
+            # Показываем информацию
+            user = await get_user(callback.from_user.id)
+            plots = user.get('farm_plots', [])
+            plot = plots[plot_index]
+            crop = CROPS.get(plot.get('crop'))
+            
+            if crop:
+                planted = plot.get('planted_at', 0)
+                ready_time = planted + crop['growth_time']
+                remaining = ready_time - int(time.time())
+                h = remaining // 3600
+                m = (remaining % 3600) // 60
+                
+                keyboard = InlineKeyboardBuilder()
+                keyboard.button(text="◀️ Назад", callback_data="farm_back")
+                
+                await callback.message.answer(
+                    f"🌱 **Грядка {plot_index + 1}**\n\n"
+                    f"📦 Культура: {crop['name']}\n"
+                    f"⏱ Осталось: {h}ч {m}м\n"
+                    f"💰 Награда: {crop['reward']} 🍇\n"
+                    f"⭐ XP: {crop['xp']}",
+                    reply_markup=keyboard.as_markup()
+                )
+    
+    except Exception as e:
+        logging.error(f"Ошибка callback_plot_action: {e}")
+
+# Кнопка "Назад"
+@dp.callback_query(lambda c: c.data == "farm_back")
+async def callback_farm_back(callback: CallbackQuery):
+    try:
+        await callback.answer()
+        await callback.message.delete()
+        await cmd_farm(callback.message)
+    except Exception as e:
+        logging.error(f"Ошибка callback_farm_back: {e}")
+
+# Кнопка "Обновить"
+@dp.callback_query(lambda c: c.data == "farm_refresh")
+async def callback_farm_refresh(callback: CallbackQuery):
+    try:
+        await callback.answer("🔄 Обновляю...")
+        await callback.message.delete()
+        await cmd_farm(callback.message)
+    except Exception as e:
+        logging.error(f"Ошибка callback_farm_refresh: {e}")
+
+# Посадка на конкретную грядку
+@dp.callback_query(lambda c: c.data.startswith("plant_to_"))
+async def callback_plant_to(callback: CallbackQuery):
+    try:
+        await callback.answer()
+        parts = callback.data.replace("plant_to_", "").split("_")
+        crop_id = parts[0]
+        plot_index = int(parts[1])
+        
+        success, msg = await plant_crop(callback.from_user.id, plot_index, crop_id)
+        await callback.message.answer(f"{'✅' if success else '❌'} {msg}")
+        
+        if success:
+            await callback.message.delete()
+            await cmd_farm(callback.message)
+    
+    except Exception as e:
+        logging.error(f"Ошибка callback_plant_to: {e}")
+
+# Обновлённые команды без слэша
+@dp.message(F.text == "сбор")
+async def cmd_collect(message: Message):
+    try:
+        user_id = message.from_user.id
+        await add_user(user_id)
+        
+        user = await get_user(user_id)
+        now = int(time.time())
+        last_time = user.get('last_collect', 0)
+        cooldown = COOLDOWN_SECONDS
+        
+        if now - last_time < cooldown:
+            remaining = cooldown - (now - last_time)
+            h = remaining // 3600
+            m = (remaining % 3600) // 60
+            await message.answer(f"⏳ Подождите: {h}ч {m}м")
+            return
+        
+        reward = GRAPE_REWARD
+        await update_balance(user_id, reward)
+        
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE users SET last_collect = $1 WHERE user_id = $2", now, user_id)
+        
+        new_user = await get_user(user_id)
+        await message.answer(f"🍇 Собрано: {reward}\n💰 Баланс: {new_user['balance']}")
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+
+@dp.message(F.text == "дом")
+async def cmd_house(message: Message):
+    try:
+        user = await get_user(message.from_user.id)
+        if not user:
+            await message.answer("❌ Сначала старт")
+            return
+        
+        house_level = user.get('house_level', 1)
+        balance = user.get('balance', 0)
+        
+        house = HOUSES.get('tent')
+        for h in HOUSES.values():
+            if h['level'] == house_level:
+                house = h
+                break
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="💰 Забрать", callback_data="house_claim")
+        keyboard.adjust(1)
+        
+        text = (
+            f"🏠 {house['name']}\n\n"
+            f"📊 Уровень: {house_level}\n"
+            f"💰 Доход: {house['passive_income']}/час\n"
+            f"💵 Баланс: {balance:,} 🍇"
+        )
+        
+        await message.answer(text, reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+
+@dp.message(F.text == "подарки")
+async def cmd_gifts(message: Message):
+    try:
+        user = await get_user(message.from_user.id)
+        balance = user.get('balance', 0) if user else 0
+        
+        keyboard = InlineKeyboardBuilder()
+        for item_id, item in GIFT_CATALOG.items():
+            keyboard.button(text=f"{item['name']} - {item['price']} 🍇", callback_data=f"gift_{item_id}")
+        keyboard.adjust(2)
+        
+        await message.answer(f"🎁 Магазин\n💰 Баланс: {balance} 🍇", reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+
+@dp.message(F.text == "инвентарь")
+async def cmd_inventory(message: Message):
+    try:
+        user = await get_user(message.from_user.id)
+        if not user:
+            await message.answer("❌ Ошибка")
+            return
+        
+        inventory = user.get('inventory', [])
+        if not inventory:
+            await message.answer("📦 Пусто\n\nподарки - купить")
+            return
+        
+        text = "📦 Ваш инвентарь\n\n"
+        keyboard = InlineKeyboardBuilder()
+        
+        item_counts = {}
+        for item in inventory:
+            if isinstance(item, dict):
+                item_id = item.get('item_id')
+                qty = item.get('quantity', 1)
+                if item_id:
+                    item_counts[item_id] = item_counts.get(item_id, 0) + qty
+        
+        for item_id, count in item_counts.items():
+            item_info = GIFT_CATALOG.get(item_id)
+            if item_info:
+                text += f"{item_info['name']} x{count}\n"
+                keyboard.button(text=f"🎁 Передать {item_info['name']}", callback_data=f"transfer_{item_id}")
+        
+        keyboard.adjust(1)
+        await message.answer(text, reply_markup=keyboard.as_markup())
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+
+@dp.message(F.text == "баланс")
+async def cmd_balance(message: Message):
+    try:
+        user = await get_user(message.from_user.id)
+        if not user:
+            await message.answer("❌ Сначала старт")
+            return
+        
+        text = (
+            f"💰 Баланс\n\n"
+            f"🍇 Виноград: {user.get('balance', 0):,}\n"
+            f"🌾 Ферма: ур. {user.get('farm_level', 1)}\n"
+            f"🏠 Дом: ур. {user.get('house_level', 1)}"
+        )
+        await message.answer(text)
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+
+@dp.message(F.text == "помощь")
+async def cmd_help(message: Message):
+    text = (
+        "📚 Справка\n\n"
+        "ферма - ваша ферма\n"
+        "сбор - собрать виноград\n"
+        "дом - ваш дом\n"
+        "подарки - магазин\n"
+        "инвентарь - подарки\n"
+        "баланс - баланс\n"
+        "помощь - справка"
+    )
+    await message.answer(text)
 
 @dp.message(F.text == "сбор")
 async def cmd_collect(message: Message):
