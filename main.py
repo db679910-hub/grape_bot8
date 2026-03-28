@@ -15,7 +15,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Администраторы (замените на свой Telegram ID)
-ADMIN_IDS = [123456789]  # Укажите ваш Telegram ID
+ADMIN_IDS = [2077080944]  # Укажите ваш Telegram ID
 
 GRAPE_REWARD = 15
 COOLDOWN_HOURS = 4
